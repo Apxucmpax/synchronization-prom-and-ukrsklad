@@ -1,1 +1,1 @@
-git pull https://github.com/Apxucmpax/synchronization-prom-and-ukrsklad.git && npm i
+git pull && npm i

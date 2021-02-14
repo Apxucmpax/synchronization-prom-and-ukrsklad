@@ -1,2 +1,5 @@
 public/javascripts/option.js
 public/javascripts/token.js
+package-lock.json
+node_modules/
+.gitignore

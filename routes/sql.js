@@ -103,7 +103,7 @@ router
         const {opt, data} = req.body;
         if (data) where = ` WHERE TIP = ${data}`;
         //скачиваем базу
-        select(opt, 'SELECT NAME, NUM, CENA, CENA_R, CENA_O, DOPOLN1 FROM TOVAR_NAME' + where)
+        select(opt, 'SELECT NAME, NUM, CENA, CENA_R, CENA_O, DOPOLN1, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN FROM TOVAR_NAME' + where)
             .then(d => createXLSPrice('price', d.data))
             .then(d => watchPrice(opt, d))
             .then(data => res.json(data))
@@ -211,7 +211,7 @@ function watchPrice(opt, data) {
 }
 //сверяем что изменилось
 function checkChenges(newData, oldData) {
-    const filds = ['NAME', 'CENA', 'CENA_O', 'CENA_R', 'DOPOLN1'];
+    const filds = ['NAME', 'CENA', 'CENA_O', 'CENA_R', 'DOPOLN1', 'KOD', 'CENA_CURR_ID', 'CENA_OUT_CURR_ID', 'KOLVO_MIN'];
     const result = [];
     oldData.forEach((o, i) => {
         let chenge = false;
@@ -234,7 +234,7 @@ function transformData(data) {
     const result = [];
     data.forEach((d, i) => {
         if (i) {
-            result.push({NUM: d[0], NAME: d[1], CENA: d[2], CENA_O: d[3], CENA_R: d[4], DOPOLN1: d[5]});
+            result.push({NUM: d[0], NAME: d[1], CENA: d[2], CENA_O: d[3], CENA_R: d[4], DOPOLN1: d[5], KOD: d[6], CENA_CURR_ID: d[7], CENA_OUT_CURR_ID: d[8], KOLVO_MIN: d[9]});
         }
     });
     return result;
@@ -252,9 +252,11 @@ function update(opt, data) {
                 res('Сохранено');
             }
             else {
-                insert(opt, `UPDATE TOVAR_NAME SET CENA = ${data[i].CENA}, 
-                        CENA_O = ${data[i].CENA_O}, CENA_R = ${data[i].CENA_R}, DOPOLN1 = ${data[i].DOPOLN1}
-                        WHERE NUM = ${data[i].NUM}`)
+                const { NUM, NAME, CENA, CENA_O, CENA_R, DOPOLN1, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN} = data[i];
+                insert(opt, `UPDATE TOVAR_NAME SET NAME = '${NAME}', CENA = ${CENA}, 
+                        CENA_O = ${CENA_O}, CENA_R = ${CENA_R}, DOPOLN1 = ${DOPOLN1}, KOD = '${KOD}',
+                        CENA_CURR_ID = ${CENA_CURR_ID}, CENA_OUT_CURR_ID = ${CENA_OUT_CURR_ID}, KOLVO_MIN = ${KOLVO_MIN}
+                        WHERE NUM = ${NUM}`)
                     .then(() => {
                             i++;
                             start();
