@@ -168,7 +168,11 @@ function createXLSPrice(fileName, arr) {
                         {CENA: 'CENA'},
                         {CENA_O: 'CENA_O'},
                         {CENA_R: 'CENA_R'},
-                        {DOPOLN1: 'DOPOLN1'}
+                        {DOPOLN1: 'DOPOLN1'},
+                        {KOD: 'KOD'},
+                        {CENA_CURR_ID: 'CENA_CURR_ID'},
+                        {CENA_OUT_CURR_ID: 'CENA_OUT_CURR_ID'},
+                        {KOLVO_MIN: 'KOLVO_MIN'}
                     ],
                     items: arr,
                     sheetName: 'sheet1',

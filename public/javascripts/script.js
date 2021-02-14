@@ -6,7 +6,7 @@ const dateNow = new Date();
 let syncExport = false;
 let selectExport;
 let online = false;
-const version = '2.1.0';
+const version = '2.1.2';
 
 socket
     .on('connect', () => {
