@@ -1,0 +1,26 @@
+{
+  "name": "Synchronization_Prom",
+  "version": "2.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "dependencies": {
+    "chokidar": "^3.4.2",
+    "cookie-parser": "~1.4.4",
+    "csv-writer": "^1.6.0",
+    "debug": "~2.6.9",
+    "express": "~4.16.1",
+    "fetch": "^1.1.0",
+    "firebird": "^0.1.4",
+    "fs": "0.0.1-security",
+    "http-errors": "~1.6.3",
+    "iconv": "^3.0.0",
+    "morgan": "~1.9.1",
+    "node-gyp": "^6.1.0",
+    "path": "^0.12.7",
+    "pug": "2.0.0-beta11",
+    "read-excel-file": "^4.0.7",
+    "xls-write": "^1.0.7"
+  }
+}
