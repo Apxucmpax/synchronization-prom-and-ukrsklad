@@ -164,14 +164,14 @@ function createXLSPrice(fileName, arr) {
                 {
                     header: [
                         {NUM: 'NUM'},
+                        {KOD: 'KOD'},
                         {NAME: 'NAME'},
                         {CENA: 'CENA'},
+                        {CENA_CURR_ID: 'CENA_CURR_ID'},
                         {CENA_O: 'CENA_O'},
+                        {CENA_OUT_CURR_ID: 'CENA_OUT_CURR_ID'},
                         {CENA_R: 'CENA_R'},
                         {DOPOLN1: 'DOPOLN1'},
-                        {KOD: 'KOD'},
-                        {CENA_CURR_ID: 'CENA_CURR_ID'},
-                        {CENA_OUT_CURR_ID: 'CENA_OUT_CURR_ID'},
                         {KOLVO_MIN: 'KOLVO_MIN'}
                     ],
                     items: arr,
@@ -238,7 +238,7 @@ function transformData(data) {
     const result = [];
     data.forEach((d, i) => {
         if (i) {
-            result.push({NUM: d[0], NAME: d[1], CENA: d[2], CENA_O: d[3], CENA_R: d[4], DOPOLN1: d[5], KOD: d[6], CENA_CURR_ID: d[7], CENA_OUT_CURR_ID: d[8], KOLVO_MIN: d[9]});
+            result.push({NUM: d[0], KOD: d[1], NAME: d[2], CENA: d[3], CENA_CURR_ID: d[4], CENA_O: d[5], CENA_OUT_CURR_ID: d[6], CENA_R: d[7], DOPOLN1: d[8], KOLVO_MIN: d[9]});
         }
     });
     return result;

@@ -3,3 +3,4 @@ public/javascripts/token.js
 package-lock.json
 node_modules/
 .gitignore
+public/price/price.xlsx

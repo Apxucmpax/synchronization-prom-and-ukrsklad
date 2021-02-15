@@ -6,7 +6,7 @@ const dateNow = new Date();
 let syncExport = false;
 let selectExport;
 let online = false;
-const version = '2.1.2';
+const version = '2.2.0';
 
 socket
     .on('connect', () => {
@@ -1130,13 +1130,75 @@ function saveImages(images) {
                 res('ok');
             } else {
                 const data = images[i];
-                saveBlobBD(option, data)
-                    .then((r) => {
-                        progress(true, 'Загрузка изоброжений', images.length, i);
-                        console.log(r);
+                if (data.URL.indexOf('https://images.ua.prom.st/') !== -1) {
+                    saveBlobBD(option, data)
+                        .then((r) => {
+                            progress(true, 'Загрузка изоброжений', images.length, i);
+                            if (!r.ok) console.log(r);
+                            i++;
+                            start();
+                        })
+                } else {
+                    console.log('Неверный URL изоброжения', data);
+                    i++;
+                    start();
+                }
+            }
+        }
+    })
+}
+//удалить фото без ID
+function removePhotoWithoutId() {
+    //получаем список товаров с id
+    const sql = `SELECT NUM, DOPOLN5 FROM TOVAR_NAME WHERE DOPOLN5 = '' OR DOPOLN5 is NULL`;
+    let prodsWithId, images;
+    selectBD(option, sql)
+        .then(prods => {
+            prodsWithId = prods.data;
+            //получаем список фото
+            return selectBD(option, `SELECT NUM, TOVAR_ID FROM TOVAR_IMAGES`)})
+        .then(tovarImages => {
+            images = tovarImages.data;
+            //сравниваем
+            return compareImagesAndTovar(images, prodsWithId)})
+        .then(imgForRemove => {
+            console.log(imgForRemove);
+            //удаляем фото позиций без ID
+            return removePhoto(imgForRemove)})
+        .then(() => console.log('Удаление изоброжений окончено'));
+}
+//сравнить tovar_images и tovar_name
+function compareImagesAndTovar(images, tovar) {
+    const result = [];
+    const objImg = {};
+    const objTov = {};
+    images.forEach(i => objImg[i.TOVAR_ID] = i);
+    tovar.forEach(t => objTov[t.NUM] = t);
+    for (let k in objImg) {
+        if (typeof objTov[k] !== 'undefined') {
+            result.push(objImg[k]);
+        }
+    }
+    return result;
+}
+//удалить фото
+function removePhoto(arr) {
+    return new Promise((res, rej) => {
+        let i = 0;
+        start();
+        function start() {
+            if (i === arr.length) {
+                progress(true, 'Удаление изоброжений окончено', arr.length, arr.length);
+                res();
+            }
+            else {
+                const sql = `DELETE FROM TOVAR_IMAGES WHERE NUM = ${arr[i].NUM}`;
+                insertBD(option, sql)
+                    .then(() => {
+                        progress(true, 'Удаление изображений', arr.length, i);
                         i++;
-                        start();
-                    })
+                        start()})
+                    .catch(err => console.log(err));
             }
         }
     })
