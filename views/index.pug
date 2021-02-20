@@ -26,8 +26,15 @@ block content
       p ID
   div.container.mt-2(style="text-align: center;")
     div.btn-group
+      button.btn.btn-outline-dark(onclick="$('#modal-import-data').modal('show');$('#modal-import-data').data('group', false)", title="Импорт данных") Импорт данных
+      button.btn.btn-outline-dark(onclick="$('#modal-import-data').modal('show');$('#modal-import-data').data('group', true)", title="Импорт данных по группе")
+        svg.bi.bi-diagram-3(width="1em", height="1em", viewBox="0 0 16 16", fill="currentColor", xmlns="http://www.w3.org/2000/svg")
+          path(fill-rule="evenodd", d="M0 11.5A1.5 1.5 0 0 1 1.5 10h1A1.5 1.5 0 0 1 4 11.5v1A1.5 1.5 0 0 1 2.5 14h-1A1.5 1.5 0 0 1 0 12.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm4.5.5A1.5 1.5 0 0 1 7.5 10h1a1.5 1.5 0 0 1 1.5 1.5v1A1.5 1.5 0 0 1 8.5 14h-1A1.5 1.5 0 0 1 6 12.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm4.5.5a1.5 1.5 0 0 1 1.5-1.5h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zM6 3.5A1.5 1.5 0 0 1 7.5 2h1A1.5 1.5 0 0 1 10 3.5v1A1.5 1.5 0 0 1 8.5 6h-1A1.5 1.5 0 0 1 6 4.5v-1zM7.5 3a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z")
+          path(fill-rule="evenodd", d="M8 5a.5.5 0 0 1 .5.5V7H14a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0v-1A.5.5 0 0 1 2 7h5.5V5.5A.5.5 0 0 1 8 5z")
+  div.container.mt-2(style="text-align: center;")
+    div.btn-group
       button.btn.btn-outline-dark(onclick="onExport(false)", title="Экспорт цен") Экспорт цен
-      button.btn.btn-outline-dark(onclick="openExportWindow()", title="Настройки экспорта")
+      button.btn.btn-outline-dark(onclick="$('#modal-export').modal('show')", title="Настройки экспорта")
         svg.bi.bi-gear(width="1em", height="1em", viewBox="0 0 16 16", fill="currentColor", xmlns="http://www.w3.org/2000/svg")
           path(fill-rule="evenodd", d="M8.837 1.626c-.246-.835-1.428-.835-1.674 0l-.094.319A1.873 1.873 0 014.377 3.06l-.292-.16c-.764-.415-1.6.42-1.184 1.185l.159.292a1.873 1.873 0 01-1.115 2.692l-.319.094c-.835.246-.835 1.428 0 1.674l.319.094a1.873 1.873 0 011.115 2.693l-.16.291c-.415.764.42 1.6 1.185 1.184l.292-.159a1.873 1.873 0 012.692 1.116l.094.318c.246.835 1.428.835 1.674 0l.094-.319a1.873 1.873 0 012.693-1.115l.291.16c.764.415 1.6-.42 1.184-1.185l-.159-.291a1.873 1.873 0 011.116-2.693l.318-.094c.835-.246.835-1.428 0-1.674l-.319-.094a1.873 1.873 0 01-1.115-2.692l.16-.292c.415-.764-.42-1.6-1.185-1.184l-.291.159A1.873 1.873 0 018.93 1.945l-.094-.319zm-2.633-.283c.527-1.79 3.065-1.79 3.592 0l.094.319a.873.873 0 001.255.52l.292-.16c1.64-.892 3.434.901 2.54 2.541l-.159.292a.873.873 0 00.52 1.255l.319.094c1.79.527 1.79 3.065 0 3.592l-.319.094a.873.873 0 00-.52 1.255l.16.292c.893 1.64-.902 3.434-2.541 2.54l-.292-.159a.873.873 0 00-1.255.52l-.094.319c-.527 1.79-3.065 1.79-3.592 0l-.094-.319a.873.873 0 00-1.255-.52l-.292.16c-1.64.893-3.433-.902-2.54-2.541l.159-.292a.873.873 0 00-.52-1.255l-.319-.094c-1.79-.527-1.79-3.065 0-3.592l.319-.094a.873.873 0 00.52-1.255l-.16-.292c-.892-1.64.902-3.433 2.541-2.54l.292.159a.873.873 0 001.255-.52l.094-.319z", clip-rule="evenodd")
           path(fill-rule="evenodd", d="M8 5.754a2.246 2.246 0 100 4.492 2.246 2.246 0 000-4.492zM4.754 8a3.246 3.246 0 116.492 0 3.246 3.246 0 01-6.492 0z", clip-rule="evenodd")
@@ -43,7 +50,7 @@ block content
     button.btn.btn-outline-dark(onclick="openTTNWindow()", title="Загрузка ТТН") Загрузка ТТН
   div.container.mt-2(style="text-align: center;")
     div.btn-group
-      button.btn.btn-outline-dark(onclick="onChangePrice()", title="Изменение цен") Изменение цен
+      button.btn.btn-outline-dark(onclick="onChangePrice()", title="Изменение цен") Изменение на УкрСклад
       button.btn.btn-outline-dark(onclick="onChangePrice(true)", title="Выбрать группу")
         svg.bi.bi-diagram-3(width="1em", height="1em", viewBox="0 0 16 16", fill="currentColor", xmlns="http://www.w3.org/2000/svg")
           path(fill-rule="evenodd", d="M0 11.5A1.5 1.5 0 0 1 1.5 10h1A1.5 1.5 0 0 1 4 11.5v1A1.5 1.5 0 0 1 2.5 14h-1A1.5 1.5 0 0 1 0 12.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm4.5.5A1.5 1.5 0 0 1 7.5 10h1a1.5 1.5 0 0 1 1.5 1.5v1A1.5 1.5 0 0 1 8.5 14h-1A1.5 1.5 0 0 1 6 12.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm4.5.5a1.5 1.5 0 0 1 1.5-1.5h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zM6 3.5A1.5 1.5 0 0 1 7.5 2h1A1.5 1.5 0 0 1 10 3.5v1A1.5 1.5 0 0 1 8.5 6h-1A1.5 1.5 0 0 1 6 4.5v-1zM7.5 3a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z")
@@ -80,6 +87,8 @@ block content
             button.btn.btn-outline-dark(onclick="openPrice()", title="Прайс") Прайс
           div.btn-group.mr-2(role="group")
             button.btn.btn-outline-dark(onclick="calib()", title="Поиск неподдержуемых символов") Калибровка
+          div.btn-group.mr-2(role="group")
+            button.btn.btn-outline-dark(onclick="calibAuto()", title="Автоматическое исправление неподдержуемых символов") Авто калибровка
           div.btn-group.mr-2.test(role="group")
             button.btn.btn-outline-dark(onclick="test2()") Тест 2
           div.btn-group.mr-2.test(role="group")
@@ -261,6 +270,23 @@ block content
           p Соединение с сервером потеряно, перезапустите сервер
         div.modal-footer
           button.btn.btn-secondary(type="button", data-dismiss="modal", title="Закрыть") Закрыть
+  div#modal-import-data.modal(tabindex="-1", role="dialog")
+    div.modal-dialog.modal-lg(role="document")
+      div.modal-content(style="text-align: center")
+        div.modal-header
+          h5.modal-title Выберите какие данные вы хотите импортировать с Пром
+          button.close(type="button", data-dismiss="modal", aria-label="Close", title="Закрыть")
+            span(aria-hidden="true") &times;
+        div.modal-body(style="font-weight: bold")
+          div.container
+            div.btn-group
+              button.btn.btn-outline-dark.import-data-field(onclick="switchActive(this)", title="Имя", data-field="NAME") Имя
+              button.btn.btn-outline-dark.import-data-field(onclick="switchActive(this)", title="Цена розничная", data-field="CENA_R") Цена розничная
+              //button.btn.btn-outline-dark.import-data-field(onclick="switchActive(this)", title="Цена оптовая", data-field="CENA_O") Цена оптовая
+              button.btn.btn-outline-dark.import-data-field(onclick="switchActive(this)", title="Код", data-field="KOD") Код
+          div.container.mt-2
+            button.btn.btn-outline-dark(onclick="onImportData()", title="Импорт") Импорт
+        div.modal-footer
   footer.text-muted
     div.container-fluid
       p Техподдержка +38 097 90 44 874

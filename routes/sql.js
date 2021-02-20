@@ -100,12 +100,15 @@ router
     .post('/data', (req, res) => {
         //console.log(req.body);
         let where = '';
-        const {opt, data} = req.body;
+        const {opt, data, fields, watch, filename} = req.body;
         if (data) where = ` WHERE TIP = ${data}`;
         //скачиваем базу
-        select(opt, 'SELECT NAME, NUM, CENA, CENA_R, CENA_O, DOPOLN1, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN FROM TOVAR_NAME' + where)
-            .then(d => createXLSPrice('price', d.data))
-            .then(d => watchPrice(opt, d))
+        select(opt, `SELECT NAME, NUM, CENA, CENA_R, CENA_O, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN${checkField(fields)} FROM TOVAR_NAME` + where)
+            .then(d => createXLSPrice((filename)?filename:'price', d.data))
+            .then(d => {
+                if (watch) return watchPrice(opt, d, fields);
+                else { return {err: null, data: "Сохранено"}}
+            })
             .then(data => res.json(data))
             .catch(err => res.json({err: err}))
         //создаем xlsx файл
@@ -114,9 +117,25 @@ router
         res.json(information);
         information.info = '';
     })
+    .post('/xlsx', (req, res) => {
+        const {data, filename} = req.body;
+        createXLSPrice((filename)?filename:'default', data)
+            .then(arr => res.json({err: null, data: 'Сохранино'}))
+            .catch(err => res.json({err: err, data: null}))
+    })
 ;
 
 module.exports = router;
+//check fields
+function checkField(fields) {
+    let result = '';
+    if (fields && Array.isArray(fields)) {
+        fields.forEach(f => {
+            if (f) result += result + `, ${f}`;
+        })
+    }
+    return result;
+}
 //selecte
 function select(opt, sql) {
     console.log(sql);
@@ -159,21 +178,11 @@ function createXLSPrice(fileName, arr) {
     return new Promise((res, rej) => {
         information.info = 'Создаем XLSX файл';
         information.status = true;
+        //console.log(createHeader(arr[0]));
         const data = {
             sheets: [
                 {
-                    header: [
-                        {NUM: 'NUM'},
-                        {KOD: 'KOD'},
-                        {NAME: 'NAME'},
-                        {CENA: 'CENA'},
-                        {CENA_CURR_ID: 'CENA_CURR_ID'},
-                        {CENA_O: 'CENA_O'},
-                        {CENA_OUT_CURR_ID: 'CENA_OUT_CURR_ID'},
-                        {CENA_R: 'CENA_R'},
-                        {DOPOLN1: 'DOPOLN1'},
-                        {KOLVO_MIN: 'KOLVO_MIN'}
-                    ],
+                    header: createHeader(arr[0]),
                     items: arr,
                     sheetName: 'sheet1',
                 }
@@ -184,8 +193,16 @@ function createXLSPrice(fileName, arr) {
         res(arr);
     })
 }
+//create header
+function createHeader(prod) {
+    const header = [];
+    for (let i in prod) {
+        header.push({[i]: i});
+    }
+    return header;
+}
 //следим за изменением в файле
-function watchPrice(opt, data) {
+function watchPrice(opt, data, fields) {
     //console.log(watcher);
     // watcher
     //     .on('change', path => console.log(`Файл ${path} был изменен`))
@@ -202,8 +219,8 @@ function watchPrice(opt, data) {
                         setTimeout(() => {
                             readXlsxFile(path)
                                 //сверить старые данные с новыми и вернуть только изменившиеся
-                                .then(rows => checkChenges(transformData(rows), data))
-                                .then(rows => update(opt, rows))
+                                .then(rows => checkChenges(transformData(rows), data, fields))
+                                .then(rows => update(opt, rows, fields))
                                 .then(d => res(d))
                                 // .then(d => console.log(d))
                                 .catch(err => rej(err))
@@ -214,15 +231,15 @@ function watchPrice(opt, data) {
     })
 }
 //сверяем что изменилось
-function checkChenges(newData, oldData) {
-    const filds = ['NAME', 'CENA', 'CENA_O', 'CENA_R', 'DOPOLN1', 'KOD', 'CENA_CURR_ID', 'CENA_OUT_CURR_ID', 'KOLVO_MIN'];
+function checkChenges(newData, oldData, additionalFields) {
+    const fields = ['NAME', 'NUM', 'CENA', 'CENA_O', 'CENA_R', 'KOD', 'CENA_CURR_ID', 'CENA_OUT_CURR_ID', 'KOLVO_MIN'].concat(additionalFields);
     const result = [];
     oldData.forEach((o, i) => {
         let chenge = false;
         const n = newData[i];
         if (o.NUM === n.NUM) {
             //нужно сверить все свойства
-            filds.forEach(f => {
+            fields.forEach(f => {
                 if (!chenge) {
                     if (o[f] !== n[f]) {
                         result.push(n);
@@ -237,14 +254,21 @@ function checkChenges(newData, oldData) {
 function transformData(data) {
     const result = [];
     data.forEach((d, i) => {
+        console.log('transformData', d);
         if (i) {
-            result.push({NUM: d[0], KOD: d[1], NAME: d[2], CENA: d[3], CENA_CURR_ID: d[4], CENA_O: d[5], CENA_OUT_CURR_ID: d[6], CENA_R: d[7], DOPOLN1: d[8], KOLVO_MIN: d[9]});
+            result.push(getObj(d));
+            //{NUM: d[0], KOD: d[1], NAME: d[2], CENA: d[3], CENA_CURR_ID: d[4], CENA_O: d[5], CENA_OUT_CURR_ID: d[6], CENA_R: d[7], DOPOLN1: d[8], KOLVO_MIN: d[9]}
         }
     });
     return result;
+    function getObj(row) {
+        const result = {}
+        data[0].forEach((d, i) => result[d] = row[i]);
+        return result;
+    }
 }
 //обновляем информацию
-function update(opt, data) {
+function update(opt, data, additionalfields) {
     return new Promise((res, rej) => {
         let i = 0;
         setTimeout(start, 5000);
@@ -253,19 +277,38 @@ function update(opt, data) {
             if (data.length === i) {
                 //information.info = 'Обновление завершено';
                 //information.status = false;
-                res('Сохранено');
-            }
-            else {
-                const { NUM, NAME, CENA, CENA_O, CENA_R, DOPOLN1, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN} = data[i];
-                insert(opt, `UPDATE TOVAR_NAME SET NAME = '${NAME}', CENA = ${CENA}, 
-                        CENA_O = ${CENA_O}, CENA_R = ${CENA_R}, DOPOLN1 = ${DOPOLN1}, KOD = '${KOD}',
-                        CENA_CURR_ID = ${CENA_CURR_ID}, CENA_OUT_CURR_ID = ${CENA_OUT_CURR_ID}, KOLVO_MIN = ${KOLVO_MIN}
-                        WHERE NUM = ${NUM}`)
+                res({data: 'Сохранено'})
+            } else {
+                //const { NUM, NAME, CENA, CENA_O, CENA_R, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN} = data[i];
+                const fields = [];
+                console.log('update', data[0]);
+                for (let k in data[0]) {
+                    fields.push(k);
+                }
+                console.log('update', fields);
+                insert(opt, `UPDATE TOVAR_NAME SET ${createSetSQL(data[i], fields)}
+                        WHERE NUM = ${data[i].NUM}`)
                     .then(() => {
                             i++;
                             start();
                         })
                     .catch(err => rej(err))
+            }
+            function createSetSQL(prod, fields) {
+                let result = '';
+                fields.forEach((f, i) => {
+                    if (i) result = result + `, ${f} = ${checkData(prod[f])}`;
+                    else result += `${f} = ${checkData(prod[f])}`;
+                })
+                return result;
+            }
+            function checkData(data) {
+                if (typeof data === 'string') return `'${data}'`;
+                else if ((typeof data === 'number') || (data === null)) return data;
+                else {
+                    console.error(`Wrong data: ${typeof data} ${data}`);
+                    return null;
+                }
             }
         }
     })

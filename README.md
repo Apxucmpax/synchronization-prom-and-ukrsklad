@@ -5,12 +5,12 @@ This README would normally document whatever steps are necessary to get your app
 ### What is this repository for? ###
 
 * Сервер по подключению к БД Firebird
-* Version 2.1.2
+* Version 2.3.0
 * [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
 
 ### How do I get set up? ###
 
-* NodeJS v14.15.5
+* NodeJS v13.13.0
 * Для коректной работы нужно вставить fbclient.dll в папку
 * '\node_modules\firebird\build\Release' для 32 битной ноды
 * 32 битный драйвер, для 64 битной 64 битный драйвер

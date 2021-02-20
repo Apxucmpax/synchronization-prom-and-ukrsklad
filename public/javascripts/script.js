@@ -54,10 +54,9 @@ socket
         progress(status, title, total, step);
     })
     .on('console', (type, item) => console.log(type, item))
-    .on('saveProd', (prods, cb) => {
+    .on('infoWindow', (msg, cb) => {
         //открываем окно с предложением сохранить товары
-        console.log('Не сохраненные товары', prods);
-        openInfoWindow(`Найдено не сохраненных товаров: ${prods.length}. Сохранить?`)
+        openInfoWindow(msg)
             .then((res) => cb(res));
     })
     .on('selectOrders', (orders, cb) => {
@@ -105,7 +104,8 @@ socket
         // createTable8(groups, rootGroup)
         //
     })
-    .on('csv', (file, name, type, cb) => {
+    .on('csv', (file, name, type, msg, cb) => {
+        console.log(file);
         switch (type) {
             case 'prom':
                 saveCsv(file, name, type).then(data => {
@@ -116,7 +116,7 @@ socket
             case 'random':
                 //вызываем окно для ввода названия файл
                 const date = new Date();
-                openInfoWindow(`Cохранить в файл спорные позиции из УкрСклада (имя файла будет: ${date.toDateString()})`)
+                openInfoWindow(`${msg} (имя файла будет: ${date.toDateString()})`)
                     .then(res => {
                         if (res) {
                             saveCsv(file, date.toDateString(), type)
@@ -131,6 +131,22 @@ socket
                 break;
             default: console.error('Неизвестный кейс: ' + type);
         }
+    })
+    .on('xlsx', (data, msg, filename, cb) => {
+        //show the window for choice, save or not
+        const date = new Date();
+        openInfoWindow(`${msg} (имя файла будет: ${filename} ${date.toDateString()})`)
+            .then(res => {
+                console.log(data);
+                if (res) {
+                    //if save, send the data on save
+                    saveXlsx(data, `${filename} ${date.toDateString()}`)
+                        .then(r => cb(null, r))
+                        .catch(err => cb(err, null));
+                } else {
+                    cb(null, 'Ok');
+                }
+            })
     });
 function saveCsv(file, name, type) {
     return new Promise((res, rej) => {
@@ -196,6 +212,40 @@ function onImport(date, setting) {
         console.log(result);
     });
 }
+//import data from Prom
+function onImportData() {
+    const byGroup = $('#modal-import-data').data('group');
+    console.log(byGroup);
+    const fields = [];
+    const elems = $('.import-data-field.active');
+    if (!elems.length) {
+        $('.alert').html('Не выбраны поля для импорта');
+    }
+    for (let i = 0; i < elems.length; i++) {
+        fields.push(elems[i].dataset.field);
+    }
+    $('#modal-import-data').modal('hide');
+    socket.emit('importData', byGroup, fields, (err, prods) => {
+        console.log(err, prods);
+    })
+}
+//add and remove active class
+function switchActive(elem) {
+    $(elem).hasClass('active') ? $(elem).removeClass('active') : $(elem).addClass('active');
+}
+//save data in .xlsx file
+function saveXlsx(data, filename) {
+    return new Promise((res, rej) => {
+        fetch('/sql/xlsx', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8'
+                },
+                body: JSON.stringify({data: data, filename: filename})})
+            .then(res => res.json())
+            .then(body => res(body))
+    })
+}
 
 function onExport(select) {
     syncExport = true;
@@ -235,52 +285,55 @@ function onDateImport(setting) {
 }
 //изменение цен
 function onChangePrice(group) {
-    if (group) {
-        //открываем окно выбора групп
-        $('#modal-groups').modal('show');
-        //отправляем запрос на получение всех групп
-        const data = {opt: option, sql: `SELECT NUM, NAME, GRUPA FROM TIP`};
-        getData(data, (err, groups) => {
-            console.log(err, groups);
-            //сортируем группы
-            sortGroup(groups.data, 0)
-                .then(d => createTable7(d, 0))
-                .then(n => {
-                    //закрываем окно групп
-                    $('#modal-groups').modal('hide');
-                    return fetch('/sql/data', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json;charset=utf-8'
-                    },
-                    body: JSON.stringify({opt: option, data: n.currentTarget.dataset.group})
-                    });
-                })//скачиваем полученную позицию(n.currentTarget.dataset.group)
-                .then(res => res.json())
-                .then(data => {
-                    $('.alert').removeClass('hidden');
-                    $('.alert').html(data)
-                })
-                .catch(err => console.log(err))
-            //выводим группы в окно
+    //get additional field
+    socket.emit('getAdditionalField', (fields) => {
+        if (group) {
+            //открываем окно выбора групп
+            $('#modal-groups').modal('show');
+            //отправляем запрос на получение всех групп
+            const data = {opt: option, sql: `SELECT NUM, NAME, GRUPA FROM TIP`};
+            getData(data, (err, groups) => {
+                console.log(err, groups);
+                //сортируем группы
+                sortGroup(groups.data, 0)
+                    .then(d => createTable7(d, 0))
+                    .then(n => {
+                        //закрываем окно групп
+                        $('#modal-groups').modal('hide');
+                        return fetch('/sql/data', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json;charset=utf-8'
+                            },
+                            body: JSON.stringify({opt: option, data: n.currentTarget.dataset.group, fields: fields, watch: true, filename: 'price'})
+                        });
+                    })//скачиваем полученную позицию(n.currentTarget.dataset.group)
+                    .then(res => res.json())
+                    .then(r => {
+                        $('.alert').removeClass('hidden');
+                        $('.alert').html(r.data)
+                    })
+                    .catch(err => console.log(err))
+                //выводим группы в окно
 
-        })
-    } else {
-        fetch('/sql/data', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
-            body: JSON.stringify({opt: option, data:null})})
-            .then(res => res.json())
-            .then((data) => {
-                //надо подписаться на изменения
-                //status();
-                $('.alert').removeClass('hidden');
-                $('.alert').html(data);
-                console.log(null, data)})
-            .catch((err) => console.log(err, null));
-    }
+            })
+        } else {
+            fetch('/sql/data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8'
+                },
+                body: JSON.stringify({opt: option, data:null, watch: true})})
+                .then(res => res.json())
+                .then(r => {
+                    //надо подписаться на изменения
+                    //status();
+                    $('.alert').removeClass('hidden');
+                    $('.alert').html(r.data);
+                    console.log(null, r.data)})
+                .catch((err) => console.log(err, null));
+        }
+    })
 }
 
 function downloadTTN() {
@@ -827,10 +880,6 @@ function openSelTovarWindow(elems) {
         });
     })
 }
-//открываем экспортное окно
-function openExportWindow() {
-    $('#modal-export').modal('show');
-}
 //поиск товаров в Укр склад
 function serchInUkrSklad(opt, prods) {
     return new Promise((res, rej) => {
@@ -1109,6 +1158,44 @@ function calib() {
         console.log(result);
     })
     //
+}
+//auto fix unsupported simbols
+function calibAuto() {
+    $('#modal-settings').modal('hide');
+    const result = [];
+    const data = {opt: option, sql: 'SELECT NUM, NAME FROM TOVAR_NAME'};
+    getData(data, (err, res) => {
+        console.log(res);
+        if (res.data) {
+            res.data.forEach(t => {
+                if (t.NAME.indexOf(`'`) !== -1) {
+                    result.push(t);
+                }
+            });
+        } else {
+            //данных нет, база пуста
+            modalAlert('База пустая');
+        }
+        //update prods
+        let i = 0;
+        start();
+        function start() {
+            if (i === result.length) {
+                progress(false);
+                $('.alert').html(`Исправление окончено, изменено ${result.length} названий`);
+            } else {
+                progress(true, 'Исправляю неподдерживаемые символы', result.length, i);
+                const sql = `UPDATE TOVAR_NAME SET NAME = '${result[i].NAME.replace(/'/g, `"`)}' WHERE NUM = ${result[i].NUM}`;
+                insertBD(option, sql)
+                    .then(() => {
+                        i++;
+                        start();
+                    })
+                    .catch(err => console.log(err));
+            }
+        }
+
+    })
 }
 //загрузка фото
 function downloadPhoto(byGroup) {
