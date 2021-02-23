@@ -6,11 +6,11 @@ const dateNow = new Date();
 let syncExport = false;
 let selectExport;
 let online = false;
-const version = '2.3.0';
+const version = '2.4.0';
 
 socket
     .on('connect', () => {
-        console.log(`Соединение установленно:${url}`);
+        console.log(`Соединение установленно:${url} (${name})`);
     })
     .on('error', (error) => {
         console.error(error);

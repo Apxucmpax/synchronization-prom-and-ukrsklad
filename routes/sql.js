@@ -219,7 +219,7 @@ function watchPrice(opt, data, fields) {
                         setTimeout(() => {
                             readXlsxFile(path)
                                 //сверить старые данные с новыми и вернуть только изменившиеся
-                                .then(rows => checkChenges(transformData(rows), data, fields))
+                                .then(rows => transformData(rows))
                                 .then(rows => update(opt, rows, fields))
                                 .then(d => res(d))
                                 // .then(d => console.log(d))
@@ -231,30 +231,30 @@ function watchPrice(opt, data, fields) {
     })
 }
 //сверяем что изменилось
-function checkChenges(newData, oldData, additionalFields) {
-    const fields = ['NAME', 'NUM', 'CENA', 'CENA_O', 'CENA_R', 'KOD', 'CENA_CURR_ID', 'CENA_OUT_CURR_ID', 'KOLVO_MIN'].concat(additionalFields);
-    const result = [];
-    oldData.forEach((o, i) => {
-        let chenge = false;
-        const n = newData[i];
-        if (o.NUM === n.NUM) {
-            //нужно сверить все свойства
-            fields.forEach(f => {
-                if (!chenge) {
-                    if (o[f] !== n[f]) {
-                        result.push(n);
-                    }
-                }
-            })
-        }
-    });
-    return result;
-}
+// function checkChenges(newData, oldData, additionalFields) {
+//     const fields = ['NAME', 'NUM', 'CENA', 'CENA_O', 'CENA_R', 'KOD', 'CENA_CURR_ID', 'CENA_OUT_CURR_ID', 'KOLVO_MIN'].concat(additionalFields);
+//     const result = [];
+//     oldData.forEach((o, i) => {
+//         let chenge = false;
+//         const n = newData[i];
+//         if (o.NUM === n.NUM) {
+//             //нужно сверить все свойства
+//             fields.forEach(f => {
+//                 if (!chenge) {
+//                     if (o[f] !== n[f]) {
+//                         result.push(n);
+//                     }
+//                 }
+//             })
+//         }
+//     });
+//     return result;
+// }
 //преоброзовать данные
 function transformData(data) {
     const result = [];
     data.forEach((d, i) => {
-        console.log('transformData', d);
+        //console.log('transformData', d);
         if (i) {
             result.push(getObj(d));
             //{NUM: d[0], KOD: d[1], NAME: d[2], CENA: d[3], CENA_CURR_ID: d[4], CENA_O: d[5], CENA_OUT_CURR_ID: d[6], CENA_R: d[7], DOPOLN1: d[8], KOLVO_MIN: d[9]}
@@ -269,6 +269,7 @@ function transformData(data) {
 }
 //обновляем информацию
 function update(opt, data, additionalfields) {
+    console.log('update:', data.length);
     return new Promise((res, rej) => {
         let i = 0;
         setTimeout(start, 5000);
@@ -281,11 +282,11 @@ function update(opt, data, additionalfields) {
             } else {
                 //const { NUM, NAME, CENA, CENA_O, CENA_R, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN} = data[i];
                 const fields = [];
-                console.log('update', data[0]);
+                //console.log('update', data[0]);
                 for (let k in data[0]) {
                     fields.push(k);
                 }
-                console.log('update', fields);
+                //console.log('update', fields);
                 insert(opt, `UPDATE TOVAR_NAME SET ${createSetSQL(data[i], fields)}
                         WHERE NUM = ${data[i].NUM}`)
                     .then(() => {
