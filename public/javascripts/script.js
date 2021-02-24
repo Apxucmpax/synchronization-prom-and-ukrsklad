@@ -6,7 +6,7 @@ const dateNow = new Date();
 let syncExport = false;
 let selectExport;
 let online = false;
-const version = '2.4.0';
+const version = '2.5.0';
 
 socket
     .on('connect', () => {
@@ -73,11 +73,6 @@ socket
         openSelTovarWindow(elems)
             .then(e => cb(null, e))
             .catch(err => cb(err, null))
-    })
-    .on('checkProd', (opt, prods, cb) => {
-        //функция проверки
-        serchInUkrSklad(option, prods)
-            .then((res => cb(res)))
     })
     .on('selectGroups', (groups, rootGroup, cb) => {
         //проверка на сохраненные товары в базе
@@ -219,7 +214,7 @@ function onImportData() {
     const fields = [];
     const elems = $('.import-data-field.active');
     if (!elems.length) {
-        $('.alert').html('Не выбраны поля для импорта');
+        $('.alert').html('Не выбраны поля для импорта').removeClass('hidden');
     }
     for (let i = 0; i < elems.length; i++) {
         fields.push(elems[i].dataset.field);
@@ -287,6 +282,8 @@ function onDateImport(setting) {
 function onChangePrice(group) {
     //get additional field
     socket.emit('getAdditionalField', (fields) => {
+        $('.alert').html('Прайс сохранен');
+        $('.alert').removeClass('hidden');
         if (group) {
             //открываем окно выбора групп
             $('#modal-groups').modal('show');
@@ -323,7 +320,7 @@ function onChangePrice(group) {
                 headers: {
                     'Content-Type': 'application/json;charset=utf-8'
                 },
-                body: JSON.stringify({opt: option, data:null, watch: true})})
+                body: JSON.stringify({opt: option, data:null, watch: true, fields: fields, filename: 'price'})})
                 .then(res => res.json())
                 .then(r => {
                     //надо подписаться на изменения
@@ -385,7 +382,7 @@ function downloadPrice() {
     if (!elems.length) console.log('Группа не выбрана');
     else {
         //скачиваем все позиции группы
-        getData({opt: option, sql: `SELECT NUM, NAME, CENA_R, CENA_O FROM TOVAR_NAME WHERE TIP = ${elems[0].dataset.id}`}, (err, data) => {
+        getData({opt: option, sql: `SELECT NUM, NAME, CENA_R, CENA_O FROM TOVAR_NAME WHERE TIP = ${elems[0].dataset.id} AND NOT(DOPOLN4 = 'DELETED')`}, (err, data) => {
             //скрываем таблицу с группами
             $('#modal-price .price-tip').addClass('hidden');
             //показываем таблицу с товарами
@@ -880,116 +877,6 @@ function openSelTovarWindow(elems) {
         });
     })
 }
-//поиск товаров в Укр склад
-function serchInUkrSklad(opt, prods) {
-    return new Promise((res, rej) => {
-        let i = 0;
-        const found = [];
-        const notFind = [];
-        start();
-        function start() {
-            progress(true, 'Поиск товаров', prods.length, i);
-            if (i < prods.length) {
-                const prod = prods[i];
-                const sql = `SELECT NUM, NAME, ED_IZM, CENA, CENA_R, CENA_O,` +
-                    ` IS_PRICE_INVISIBLE, KOD, CENA_CURR_ID, DOPOLN1 FROM TOVAR_NAME WHERE NAME = '${prod.name}'`;
-                selectBD(opt, sql)
-                    .then(r => {
-                        if (!r.data.length) {
-                            notFind.push({prom: prod, ukrSklad: null})
-                        } else if (r.data.length === 1) {
-                            found.push({prom: prod, ukrSklad: r.data[0]})
-                        } else {
-                            //выбираем обьект с наибольшим номером
-                            const maxObj = r.data.reduce((prev,cur) => cur.NUM > prev.NUM ? cur : prev, {NUM:-Infinity});
-                            found.push({prom: prod, ukrSklad: maxObj});
-                        }
-                        i++;
-                        start();
-                    })
-                    .catch(err => {
-                        console.log('error:', err);
-                        start();
-                    })
-            } else {
-                res({found: found, notFind: notFind});
-            }
-        }
-    })
-}
-//поиск товаров в укр склад алетернативный
-function serchInUkrSkladAlt() {
-
-    //получаем все товары укр склад сортированые по имени select * from tovar_name order by name
-    const sql = `SELECT NUM, NAME, ED_IZM, CENA, CENA_R, CENA_O,` +
-        ` IS_PRICE_INVISIBLE, KOD, CENA_CURR_ID, DOPOLN1 FROM TOVAR_NAME ORDER BY NAME`;
-    selectBD(option, sql)
-        .then(({data}) => {
-            const result = [];
-            const obj = {};
-            const newProm = [];
-            const newPromObj = {};
-            const prods = [];
-            const answer = [];
-            data.forEach(d => {
-                if (d.NAME.charAt(0).toLowerCase() === result[result.length - 1]) {
-                    //нечего не делаем
-                    obj[d.NAME.charAt(0).toLowerCase()].push(d);
-                } else {
-                    result.push(d.NAME.charAt(0).toLowerCase());
-                    obj[d.NAME.charAt(0).toLowerCase()] = [d];
-                }
-            });
-            console.log(result, obj);
-            //ищем Пром товары в Укр склад
-            let i = 0;
-            const int = setInterval(() => {
-                console.log(i);
-                i++;
-            }, 1000);
-            socket.emit('test', (err, proms) => {
-                proms.forEach(p => prods.push(p.product));
-                const prodsSort = prods.sort((a, b) => {
-                    if (a.name < b.name) {
-                        return -1;
-                    }
-                    if (a.name > b.name) {
-                        return 1;
-                    }
-                    // a должно быть равным b
-                    return 0;
-                });
-
-                clearInterval(int);
-                //ищем в укр склад
-                prodsSort.forEach((p) => {
-                    if (p.name.charAt(0).toLowerCase() === newProm[newProm.length - 1]) {
-                        //нечего не делаем
-                        newPromObj[p.name.charAt(0).toLowerCase()].push(p);
-                    } else {
-                        newProm.push(p.name.charAt(0).toLowerCase());
-                        newPromObj[p.name.charAt(0).toLowerCase()] = [p];
-                    }
-                });
-                console.log(newProm, newPromObj);
-                //ищем номера в укр склад
-                Object.entries(newPromObj).forEach(([key, value]) => {
-                    //console.log(key, value);
-                    value.forEach(v => {
-                        obj[key].forEach(o => {
-                            //console.log(o);
-                            if (o.NAME === v.name) {
-                                v.NUM = o.NUM;
-                                answer.push(v);
-                            }
-                        })
-                    });
-                });
-                console.log(answer);
-            })
-        });
-
-}
 //ищем нужный обьект
 function serchElem(group, p) {
     console.log(group);
@@ -1142,7 +1029,41 @@ function calib() {
     //проверяем базу на неподдерживаемые символы
     //берем все товары SELECT NUM, NAME FROM TOVAR_NAME
     const result = [];
-    const data = {opt: option, sql: 'SELECT NUM, NAME FROM TOVAR_NAME'};
+    const data = {opt: option, sql: 'SELECT NUM, NAME, DOPOLN4 FROM TOVAR_NAME'};
+    getData(data, (err, tovar) => {
+        console.log(tovar);
+        if (tovar.data) {
+            tovar.data.forEach(t => {
+                if (t.NAME.indexOf(`'`) !== -1) {
+                    result.push(t);
+                }
+            });
+        } else {
+            //данных нет, база пуста
+            modalAlert('База пустая');
+        }
+        console.log(result);
+        //поиск удаленных позиций
+        getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL'}, (err, zal) => {
+            const zalObj = {};
+            if (zal.data) {
+                zal.data.forEach(z => zalObj[z.TOVAR_ID] = z.TOVAR_ID);//tovar[1,2,3,4,5] zal[2,3]
+                const result2 = tovar.data.filter(t => {
+                    if (!zalObj[t.NUM]) return t;
+                });
+                console.log(result2);
+            } else {
+                //данных нет, база пуста
+                modalAlert('База пустая');
+            }
+        })
+    })
+}
+//auto fix unsupported simbols
+function calibAuto() {
+    $('#modal-settings').modal('hide');
+    const result = [];
+    const data = {opt: option, sql: `SELECT NUM, NAME FROM TOVAR_NAME WHERE NOT(DOPOLN4 = 'DELETED')`};
     getData(data, (err, res) => {
         console.log(res);
         if (res.data) {
@@ -1156,45 +1077,58 @@ function calib() {
             modalAlert('База пустая');
         }
         console.log(result);
-    })
-    //
-}
-//auto fix unsupported simbols
-function calibAuto() {
-    $('#modal-settings').modal('hide');
-    const result = [];
-    const data = {opt: option, sql: 'SELECT NUM, NAME FROM TOVAR_NAME'};
-    getData(data, (err, res) => {
-        console.log(res);
-        if (res.data) {
-            res.data.forEach(t => {
-                if (t.NAME.indexOf(`'`) !== -1) {
-                    result.push(t);
-                }
-            });
-        } else {
-            //данных нет, база пуста
-            modalAlert('База пустая');
-        }
-        //update prods
-        let i = 0;
-        start();
-        function start() {
-            if (i === result.length) {
-                progress(false);
-                $('.alert').html(`Исправление окончено, изменено ${result.length} названий`);
+        //поиск удаленных позиций
+        getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL'}, (err, zal) => {
+            const zalObj = {};
+            let result2;
+            if (zal.data) {
+                zal.data.forEach(z => zalObj[z.TOVAR_ID] = z.TOVAR_ID);//tovar[1,2,3,4,5] zal[2,3]
+                result2 = res.data.filter(t => {
+                    if (!zalObj[t.NUM]) return t;
+                });
+                console.log(result2);
             } else {
-                progress(true, 'Исправляю неподдерживаемые символы', result.length, i);
-                const sql = `UPDATE TOVAR_NAME SET NAME = '${result[i].NAME.replace(/'/g, `"`)}' WHERE NUM = ${result[i].NUM}`;
-                insertBD(option, sql)
-                    .then(() => {
-                        i++;
-                        start();
-                    })
-                    .catch(err => console.log(err));
+                //данных нет, база пуста
+                modalAlert('База пустая');
             }
-        }
-
+            //update prods
+            let i = 0;
+            start();
+            function start() {
+                if (i === result.length) {
+                    progress(false);
+                    $('.alert').html(`Исправление окончено, изменено ${result.length} названий`).removeClass('hidden');
+                    //запускаем вторую функцию
+                    let i = 0;
+                    start2();
+                } else {
+                    progress(true, 'Исправляю неподдерживаемые символы', result.length, i);
+                    const sql = `UPDATE TOVAR_NAME SET NAME = '${result[i].NAME.replace(/'/g, `"`)}' WHERE NUM = ${result[i].NUM}`;
+                    insertBD(option, sql)
+                        .then(() => {
+                            i++;
+                            start();
+                        })
+                        .catch(err => console.log(err));
+                }
+            }
+            function start2() {
+                if (i === result2.length) {
+                    progress(false);
+                    $('.alert').html(`Исправление окончено, изменено ${result2.length} позиций`).removeClass('hidden');
+                    //запускаем вторую функцию
+                } else {
+                    progress(true, 'Добавление в удаленные позиции статус DELETED', result2.length, i);
+                    const sql = `UPDATE TOVAR_NAME SET DOPOLN4 = 'DELETED' WHERE NUM = ${result2[i].NUM}`;
+                    insertBD(option, sql)
+                        .then(() => {
+                            i++;
+                            start2();
+                        })
+                        .catch(err => console.log(err));
+                }
+            }
+        })
     })
 }
 //загрузка фото
@@ -1290,7 +1224,27 @@ function removePhoto(arr) {
         }
     })
 }
+//export file
+// function exportFile() {
+//     fetch('sql/export', {
+//             method: 'GET'})
+//         .then(r => r.json())
+//         .then(xlsx => {
+//             console.log(xlsx);
+//         })
+// }
 function test2() {
+    // const result = [];
+    // const sql = `SELECT NUM, DOPOLN5, TIP FROM TOVAR_NAME WHERE NOT(DOPOLN5 = '' OR DOPOLN5 is NULL AND DOPOLN4 = 'DELETED')`;
+    // selectBD(option, sql)
+    //     .then(r => {
+    //         const obj = {};
+    //         r.data.forEach(d => {
+    //             if (!obj[d.DOPOLN5]) obj[d.DOPOLN5] = d.NUM;
+    //             else if (d.TIP === 1639)result.push(d.DOPOLN5);
+    //         })
+    //         console.log(result);
+    //     })
     //saveBlobBD(option, 'test', 'test', 'test').then(data => cb(data));
     //тест
     // $('#modal-settings').modal('hide');

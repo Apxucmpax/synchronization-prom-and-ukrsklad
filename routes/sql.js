@@ -9,6 +9,7 @@ const path = require('path');
 const jexcel = require('xls-write');
 const chokidar = require('chokidar');
 const readXlsxFile = require('read-excel-file/node');
+const xlsx = require('xlsx')
 const watcher = chokidar.watch('public/price/price.xlsx', {
     ignored: /(^|[\/\\])\../, // ignore dotfiles
     persistent: true
@@ -101,9 +102,10 @@ router
         //console.log(req.body);
         let where = '';
         const {opt, data, fields, watch, filename} = req.body;
-        if (data) where = ` WHERE TIP = ${data}`;
+        if (data) where = ` AND TIP = ${data}`;
+        console.log('fields', fields);
         //скачиваем базу
-        select(opt, `SELECT NAME, NUM, CENA, CENA_R, CENA_O, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN${checkField(fields)} FROM TOVAR_NAME` + where)
+        select(opt, `SELECT NUM, NAME, CENA, CENA_R, CENA_O, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN, CENA_1, CENA_2${checkField(fields)} FROM TOVAR_NAME WHERE NOT(DOPOLN4 = 'DELETED')` + where)
             .then(d => createXLSPrice((filename)?filename:'price', d.data))
             .then(d => {
                 if (watch) return watchPrice(opt, d, fields);
@@ -123,6 +125,10 @@ router
             .then(arr => res.json({err: null, data: 'Сохранино'}))
             .catch(err => res.json({err: err, data: null}))
     })
+    // .get('/export', (req, res) => {
+    //     // const rows = xlsx.readFile('public\\price\\export.xlsx');
+    //     // res.json(rows);
+    // })
 ;
 
 module.exports = router;
@@ -219,7 +225,7 @@ function watchPrice(opt, data, fields) {
                         setTimeout(() => {
                             readXlsxFile(path)
                                 //сверить старые данные с новыми и вернуть только изменившиеся
-                                .then(rows => transformData(rows))
+                                .then(rows => transformData(rows, fields))
                                 .then(rows => update(opt, rows, fields))
                                 .then(d => res(d))
                                 // .then(d => console.log(d))
@@ -227,6 +233,8 @@ function watchPrice(opt, data, fields) {
                         }, 3000);
                     })
             }, 5000);
+        } else {
+            console.log('За файлом уже наблюдают');
         }
     })
 }
@@ -251,20 +259,35 @@ function watchPrice(opt, data, fields) {
 //     return result;
 // }
 //преоброзовать данные
-function transformData(data) {
+function transformData(data, fields) {
+    console.log('transformData');
     const result = [];
     data.forEach((d, i) => {
         //console.log('transformData', d);
         if (i) {
             result.push(getObj(d));
-            //{NUM: d[0], KOD: d[1], NAME: d[2], CENA: d[3], CENA_CURR_ID: d[4], CENA_O: d[5], CENA_OUT_CURR_ID: d[6], CENA_R: d[7], DOPOLN1: d[8], KOLVO_MIN: d[9]}
         }
     });
+    console.log(result);
     return result;
     function getObj(row) {
+        console.log('getObj');
         const result = {}
-        data[0].forEach((d, i) => result[d] = row[i]);
+        data[0].forEach((d, i) => {
+            if (checkingFields(d, fields)) result[d] = row[i];
+        });
         return result;
+    }
+    function checkingFields(field, fields) {
+        console.log('checkingFields');
+        let find = false;
+        const defaultFields = ['NUM', 'NAME', 'CENA', 'CENA_R', 'CENA_O', 'KOD', 'CENA_CURR_ID', 'CENA_OUT_CURR_ID', 'KOLVO_MIN', 'CENA_1', 'CENA_2', ...fields];
+        console.log(defaultFields);
+        defaultFields.forEach(d => {
+            console.log(d, field);
+            if (d === field) find = true;
+        });
+        return find;
     }
 }
 //обновляем информацию

@@ -1,6 +1,6 @@
 {
   "name": "Synchronization_Prom",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "private": true,
   "scripts": {
     "start": "node ./bin/www"
@@ -21,6 +21,7 @@
     "path": "^0.12.7",
     "pug": "2.0.0-beta11",
     "read-excel-file": "^4.0.7",
-    "xls-write": "^1.0.7"
+    "xls-write": "^1.0.7",
+    "xlsx": "^0.16.9"
   }
 }
