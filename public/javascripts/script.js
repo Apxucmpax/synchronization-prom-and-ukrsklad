@@ -6,7 +6,7 @@ const dateNow = new Date();
 let syncExport = false;
 let selectExport;
 let online = false;
-const version = '2.5.0';
+const version = '2.5.1';
 
 socket
     .on('connect', () => {
@@ -382,7 +382,7 @@ function downloadPrice() {
     if (!elems.length) console.log('Группа не выбрана');
     else {
         //скачиваем все позиции группы
-        getData({opt: option, sql: `SELECT NUM, NAME, CENA_R, CENA_O FROM TOVAR_NAME WHERE TIP = ${elems[0].dataset.id} AND NOT(DOPOLN4 = 'DELETED')`}, (err, data) => {
+        getData({opt: option, sql: `SELECT NUM, NAME, CENA_R, CENA_O FROM TOVAR_NAME WHERE TIP = ${elems[0].dataset.id}`}, (err, data) => {
             //скрываем таблицу с группами
             $('#modal-price .price-tip').addClass('hidden');
             //показываем таблицу с товарами
