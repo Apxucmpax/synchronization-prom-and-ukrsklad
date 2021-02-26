@@ -6,7 +6,7 @@ const dateNow = new Date();
 let syncExport = false;
 let selectExport;
 let online = false;
-const version = '2.5.2';
+const version = '2.6.0';
 //AND(DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)
 socket
     .on('connect', () => {
@@ -29,7 +29,7 @@ socket
                 online = changeOnlineStatus('success'); //все хорошо
                 //установка свитча
                 stateSwitch(info);
-                if (online) checkExport();//проверяем был ли запущен экспорт цен
+                //if (online) checkExport();//проверяем был ли запущен экспорт цен
                 //setInterval(checkConnect, 60000);
             });
         }
@@ -52,6 +52,9 @@ socket
     })
     .on('progress', (status, title, total, step) => {
         progress(status, title, total, step);
+    })
+    .on('alert', (text) => {
+        $('.alert').html(text).removeClass('hidden');
     })
     .on('console', (type, item) => console.log(type, item))
     .on('infoWindow', (msg, cb) => {
@@ -197,7 +200,7 @@ function onImport(date, setting) {
             $('.alert').html(`Что то пошло не так: Дата: ${date}`).removeClass('hidden');
             return modalAlert(handlerError(err));
         }
-        if (result === null) $('.alert').html(`Накладных нет`);
+        if (result === null || !result.length) $('.alert').html(`Накладных нет`);
         else {
             $('.alert').html(`Загруженно накладных: ${result.length} шт.`);
             //открывать окно для импорта писем за другой день
@@ -382,7 +385,7 @@ function downloadPrice() {
     if (!elems.length) console.log('Группа не выбрана');
     else {
         //скачиваем все позиции группы
-        getData({opt: option, sql: `SELECT NUM, NAME, CENA_R, CENA_O FROM TOVAR_NAME WHERE TIP = ${elems[0].dataset.id}`}, (err, data) => {
+        getData({opt: option, sql: `SELECT NUM, NAME, CENA_R, CENA_O FROM TOVAR_NAME WHERE TIP = ${elems[0].dataset.id} AND(DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)`}, (err, data) => {
             //скрываем таблицу с группами
             $('#modal-price .price-tip').addClass('hidden');
             //показываем таблицу с товарами
@@ -1063,7 +1066,7 @@ function calib() {
 function calibAuto() {
     $('#modal-settings').modal('hide');
     const result = [];
-    const data = {opt: option, sql: `SELECT NUM, NAME FROM TOVAR_NAME WHERE NOT(DOPOLN4 = 'DELETED')`};
+    const data = {opt: option, sql: `SELECT NUM, NAME, DOPOLN4 FROM TOVAR_NAME`};
     getData(data, (err, res) => {
         console.log(res);
         if (res.data) {
@@ -1171,17 +1174,17 @@ function saveImages(images) {
 //удалить фото без ID
 function removePhotoWithoutId() {
     //получаем список товаров с id
-    const sql = `SELECT NUM, DOPOLN5 FROM TOVAR_NAME WHERE DOPOLN5 = '' OR DOPOLN5 is NULL`;
-    let prodsWithId, images;
+    const sql = `SELECT NUM, DOPOLN5 FROM TOVAR_NAME WHERE (DOPOLN5 = '' OR DOPOLN5 is NULL)`;
+    let prodsWithOutId, images;
     selectBD(option, sql)
         .then(prods => {
-            prodsWithId = prods.data;
+            prodsWithOutId = prods.data;
             //получаем список фото
             return selectBD(option, `SELECT NUM, TOVAR_ID FROM TOVAR_IMAGES`)})
         .then(tovarImages => {
             images = tovarImages.data;
             //сравниваем
-            return compareImagesAndTovar(images, prodsWithId)})
+            return compareImagesAndTovar(images, prodsWithOutId)})
         .then(imgForRemove => {
             console.log(imgForRemove);
             //удаляем фото позиций без ID
@@ -1209,7 +1212,8 @@ function removePhoto(arr) {
         start();
         function start() {
             if (i === arr.length) {
-                progress(true, 'Удаление изоброжений окончено', arr.length, arr.length);
+                progress(false);
+                $('.alert').html('Удаление изоброжений окончено:' + arr.length).removeClass('hidden');
                 res();
             }
             else {

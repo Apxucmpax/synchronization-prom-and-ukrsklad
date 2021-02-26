@@ -102,10 +102,10 @@ router
         //console.log(req.body);
         let where = '';
         const {opt, data, fields, watch, filename} = req.body;
-        if (data) where = ` WHERE TIP = ${data}`;
+        if (data) where = ` AND TIP = ${data}`;
         console.log('fields', fields);
         //скачиваем базу
-        select(opt, `SELECT NUM, NAME, CENA, CENA_R, CENA_O, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN, CENA_1, CENA_2${checkField(fields)} FROM TOVAR_NAME` + where)
+        select(opt, `SELECT NUM, NAME, CENA, CENA_R, CENA_O, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN, CENA_1, CENA_2${checkField(fields)} FROM TOVAR_NAME WHERE (DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)` + where)
             .then(d => createXLSPrice((filename)?filename:'price', d.data))
             .then(d => {
                 if (watch) return watchPrice(opt, d, fields);
