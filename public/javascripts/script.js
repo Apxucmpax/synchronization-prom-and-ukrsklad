@@ -6,8 +6,8 @@ const dateNow = new Date();
 let syncExport = false;
 let selectExport;
 let online = false;
-const version = '2.5.1';
-
+const version = '2.5.2';
+//AND(DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)
 socket
     .on('connect', () => {
         console.log(`Соединение установленно:${url} (${name})`);
@@ -159,14 +159,14 @@ function saveCsv(file, name, type) {
 
 function getData(data, cb) {
     fetch('/sql/select', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json;charset=utf-8'
-        },
-        body: JSON.stringify(data)
-    }).then(res => res.json()
-    ).then(data => cb(null, data)
-    ).catch(err => cb(err, null));
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+            },
+            body: JSON.stringify(data)})
+        .then(res => res.json())
+        .then(data => cb(null, data))
+        .catch(err => cb(err, null))
 }
 
 function pushData(data, cb) {
@@ -1032,9 +1032,9 @@ function calib() {
     const data = {opt: option, sql: 'SELECT NUM, NAME, DOPOLN4 FROM TOVAR_NAME'};
     getData(data, (err, tovar) => {
         console.log(tovar);
-        if (tovar.data) {
+        if (tovar && tovar.data) {
             tovar.data.forEach(t => {
-                if (t.NAME.indexOf(`'`) !== -1) {
+                if (t.NAME && (t.NAME.indexOf(`'`) !== -1)) {
                     result.push(t);
                 }
             });
@@ -1068,7 +1068,7 @@ function calibAuto() {
         console.log(res);
         if (res.data) {
             res.data.forEach(t => {
-                if (t.NAME.indexOf(`'`) !== -1) {
+                if (t.NAME && (t.NAME.indexOf(`'`) !== -1)) {
                     result.push(t);
                 }
             });
