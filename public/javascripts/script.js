@@ -6,7 +6,7 @@ const dateNow = new Date();
 let syncExport = false;
 let selectExport;
 let online = false;
-const version = '2.6.0';
+const version = '2.6.1';
 //AND(DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)
 socket
     .on('connect', () => {
@@ -1032,7 +1032,7 @@ function calib() {
     //проверяем базу на неподдерживаемые символы
     //берем все товары SELECT NUM, NAME FROM TOVAR_NAME
     const result = [];
-    const data = {opt: option, sql: 'SELECT NUM, NAME, DOPOLN4 FROM TOVAR_NAME'};
+    const data = {opt: option, sql: `SELECT NUM, NAME, DOPOLN4 FROM TOVAR_NAME WHERE (DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)`};
     getData(data, (err, tovar) => {
         console.log(tovar);
         if (tovar && tovar.data) {
@@ -1066,7 +1066,7 @@ function calib() {
 function calibAuto() {
     $('#modal-settings').modal('hide');
     const result = [];
-    const data = {opt: option, sql: `SELECT NUM, NAME, DOPOLN4 FROM TOVAR_NAME`};
+    const data = {opt: option, sql: `SELECT NUM, NAME, DOPOLN4 FROM TOVAR_NAME WHERE (DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)`};
     getData(data, (err, res) => {
         console.log(res);
         if (res.data) {
