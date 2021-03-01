@@ -39,8 +39,7 @@ function createCSV(arr, name) {
                 {id: 'presence', title: 'Наличие'},
                 {id: 'id', title: 'Уникальный_идентификатор'},
                 {id: 'group', title: 'Идентификатор_группы'},
-                {id: 'external_id', title: 'Идентификатор_товара'},
-                {id: 'keywords', title: 'HTML_ключевые_слова'}
+                {id: 'external_id', title: 'Идентификатор_товара'}
             ]
         });
         csvWriter.writeRecords(arr)

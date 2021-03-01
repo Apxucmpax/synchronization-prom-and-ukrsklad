@@ -6,8 +6,8 @@ const dateNow = new Date();
 let syncExport = false;
 let selectExport;
 let online = false;
-const version = '2.6.1';
-//AND(DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)
+const version = '2.7.0';
+
 socket
     .on('connect', () => {
         console.log(`Соединение установленно:${url} (${name})`);
@@ -103,7 +103,7 @@ socket
         //
     })
     .on('csv', (file, name, type, msg, cb) => {
-        console.log(file);
+        console.log(file, name, type, msg);
         switch (type) {
             case 'prom':
                 saveCsv(file, name, type).then(data => {
@@ -114,10 +114,10 @@ socket
             case 'random':
                 //вызываем окно для ввода названия файл
                 const date = new Date();
-                openInfoWindow(`${msg} (имя файла будет: ${date.toDateString()})`)
+                openInfoWindow(`${msg} (имя файла будет: ${name + date.toDateString()})`)
                     .then(res => {
                         if (res) {
-                            saveCsv(file, date.toDateString(), type)
+                            saveCsv(file, name + date.toDateString(), type)
                                 .then(data => {
                                     console.log(data);
                                     cb(null, data)})
@@ -621,7 +621,7 @@ function createTable3(elems) {
               </td>
               <td>${o.NAME}</td>
               <td>${o.CENA}</td>
-              <td>${o.CENA_CURR_ID}</td>
+              <td>${o.CENA_OUT_CURR_ID}</td>
               <td>${o.CENA_O}</td>
               <td>${o.CENA_R}</td>
               <td>${o.DOPOLN1}</td>
@@ -1238,17 +1238,17 @@ function removePhoto(arr) {
 //         })
 // }
 function test2() {
-    // const result = [];
-    // const sql = `SELECT NUM, DOPOLN5, TIP FROM TOVAR_NAME WHERE NOT(DOPOLN5 = '' OR DOPOLN5 is NULL AND DOPOLN4 = 'DELETED')`;
-    // selectBD(option, sql)
-    //     .then(r => {
-    //         const obj = {};
-    //         r.data.forEach(d => {
-    //             if (!obj[d.DOPOLN5]) obj[d.DOPOLN5] = d.NUM;
-    //             else if (d.TIP === 1639)result.push(d.DOPOLN5);
-    //         })
-    //         console.log(result);
-    //     })
+    const result = [];
+    const sql = `SELECT NUM, DOPOLN5, TIP FROM TOVAR_NAME WHERE NOT(DOPOLN5 = '' OR DOPOLN5 is NULL AND DOPOLN4 = 'DELETED')`;
+    selectBD(option, sql)
+        .then(r => {
+            const obj = {};
+            r.data.forEach(d => {
+                if (!obj[d.DOPOLN5]) obj[d.DOPOLN5] = d.NUM;
+                else result.push(d.DOPOLN5);//if (d.TIP === 1639)
+            })
+            console.log(result);
+        })
     //saveBlobBD(option, 'test', 'test', 'test').then(data => cb(data));
     //тест
     // $('#modal-settings').modal('hide');
