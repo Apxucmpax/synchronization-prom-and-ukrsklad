@@ -6,7 +6,8 @@ const dateNow = new Date();
 let syncExport = false;
 let selectExport;
 let online = false;
-const version = '2.7.0';
+let sentStatus = false;
+const version = '2.8.0';
 
 socket
     .on('connect', () => {
@@ -305,17 +306,16 @@ function onChangePrice(group) {
                             headers: {
                                 'Content-Type': 'application/json;charset=utf-8'
                             },
-                            body: JSON.stringify({opt: option, data: n.currentTarget.dataset.group, fields: fields, watch: true, filename: 'price'})
+                            body: JSON.stringify({opt: option, data: n.currentTarget.dataset.group, fields: fields, watch: false, filename: 'price'})
                         });
                     })//скачиваем полученную позицию(n.currentTarget.dataset.group)
                     .then(res => res.json())
                     .then(r => {
-                        $('.alert').removeClass('hidden');
-                        $('.alert').html(r.data)
+                        status();
+                        $('.alert').html(r.data).removeClass('hidden');
                     })
                     .catch(err => console.log(err))
                 //выводим группы в окно
-
             })
         } else {
             fetch('/sql/data', {
@@ -327,7 +327,7 @@ function onChangePrice(group) {
                 .then(res => res.json())
                 .then(r => {
                     //надо подписаться на изменения
-                    //status();
+                    status();
                     $('.alert').removeClass('hidden');
                     $('.alert').html(r.data);
                     console.log(null, r.data)})
@@ -981,23 +981,38 @@ function checkDB() {
 }
 //подписываемся на сообщения о статусе
 function status() {
-    start();
-    function start() {
-        fetch('/sql/status', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            }})
-            .then(res => res.json())
-            .then(data => {
-                console.log('status', data);
-                if (data.status) {
-                    setTimeout(start, 1000);
-                } else {
-                    console.log('Подписка на информацию остановлена');
-                }
-            })
-            .catch(err => console.log(err))
+    if (!sentStatus) {
+        sentStatus = true;
+        start();
+        //let data = '';
+        function start(data) {
+            console.log('status');
+            const query = (data)?`?${data}`:'';
+            fetch('/sql/status' + query, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8'
+                }})
+                .then(res => res.json())
+                .then(data => {
+                    console.log(data.info);
+                    $('.alert').html(data.info);
+                    if (data.request === 'Сохранять изменения в УкрСклад?') {
+                        openInfoWindow(data.request)
+                            .then(bool => start(`saveFile=${bool}&removeRequest=true`))
+                    }
+                    else if(data.status) {
+                        setTimeout(start, 1000);
+                    } else {
+                        $('.alert').html('Слежение окончено');
+                        console.log('Подписка на информацию остановлена');
+                        sentStatus = false;
+                    }
+                })
+                .catch(err => console.log(err))
+        }
+    } else {
+        console.log('Проверка статуса уже включена, повтороно включить не получится');
     }
 }
 //сортировка групп
@@ -1228,6 +1243,26 @@ function removePhoto(arr) {
         }
     })
 }
+//save changes
+function saveChanges() {
+    $('.alert').html('Сохраняю изменения').removeClass('hidden');
+    fetch('sql/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+            },
+            body: JSON.stringify({opt: option})
+            })
+        .then(r => r.json())
+        .then(res => {
+            if (res.err) {
+                console.error(res.err);
+                $('.alert').html(res.err).removeClass('hidden');
+            } else {
+                $('.alert').html(res.data).removeClass('hidden');
+            }
+        })
+}
 //export file
 // function exportFile() {
 //     fetch('sql/export', {
@@ -1239,13 +1274,18 @@ function removePhoto(arr) {
 // }
 function test2() {
     const result = [];
-    const sql = `SELECT NUM, DOPOLN5, TIP FROM TOVAR_NAME WHERE NOT(DOPOLN5 = '' OR DOPOLN5 is NULL AND DOPOLN4 = 'DELETED')`;
+    const sql = `SELECT NUM, DOPOLN5, TIP, DOPOLN4 FROM TOVAR_NAME WHERE DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL AND NOT(DOPOLN5 IS NULL)`;
     selectBD(option, sql)
         .then(r => {
+            console.log(r.data.length);
             const obj = {};
             r.data.forEach(d => {
-                if (!obj[d.DOPOLN5]) obj[d.DOPOLN5] = d.NUM;
-                else result.push(d.DOPOLN5);//if (d.TIP === 1639)
+                if (d.DOPOLN5) {
+                    if (!obj[d.DOPOLN5]) obj[d.DOPOLN5] = d.NUM;
+                    else {
+                        result.push(d);
+                    }
+                }
             })
             console.log(result);
         })

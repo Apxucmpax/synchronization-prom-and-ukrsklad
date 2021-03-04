@@ -15,7 +15,8 @@ const watcher = chokidar.watch('public/price/price.xlsx', {
     persistent: true
 });
 let isWatch = false;
-let information = {status: true, info: ''};
+const information = {status: true, info: '', err: null, request: null};
+const store = {};
 
 /* GET users listing. */
 router
@@ -109,21 +110,103 @@ router
             .then(d => createXLSPrice((filename)?filename:'price', d.data))
             .then(d => {
                 if (watch) return watchPrice(opt, d, fields);
-                else { return {err: null, data: "Сохранено"}}
+                else {
+                    information.status = false;
+                    return {err: null, data: "Сохранено"}
+                }
             })
             .then(data => res.json(data))
             .catch(err => res.json({err: err}))
         //создаем xlsx файл
     })
     .get('/status', (req, res) => {
+        console.log(req.query);
+        if (req.query) {
+            if (req.query.removeRequest) information.request = null;
+            if (req.query.saveFile) {
+                const {path, fields, opt} = store;
+                if (path) {
+                    information.info = '...читаю файл'
+                    console.log(path);
+                    readXlsxFile(path, fields)
+                        //сверить старые данные с новыми и вернуть только изменившиеся
+                        .then(rows => transformData(rows, fields))
+                        .then(rows => update(opt, rows, fields))
+                        .then(d => {
+                            watcher.close()
+                                .then(() => console.log('close'));
+                            information.info = d.data;
+                            information.status = false;
+                        })
+                        // .then(d => console.log(d))
+                        .catch(err => console.log(err))
+                } else {
+                    information.err = 'Путь для чтения файла отстутствует';
+                }
+            }
+        }
         res.json(information);
-        information.info = '';
     })
     .post('/xlsx', (req, res) => {
         const {data, filename} = req.body;
         createXLSPrice((filename)?filename:'default', data)
             .then(arr => res.json({err: null, data: 'Сохранино'}))
             .catch(err => res.json({err: err, data: null}))
+    })
+    .post('/save', (req, res) => {
+        const {opt} = req.body;
+        readXlsxFile('public\\price\\price.xlsx')
+            .then(rows => {
+                const rowObj = [];
+                rows.forEach((r, k) => {
+                    if (k) {
+                        rowObj.push(getObj(r))
+                    }
+                })
+                function getObj(row) {
+                    const result = {}
+                    rows[0].forEach((d, i) => {
+                        result[d] = row[i];
+                    });
+                    return result;
+                }
+                //res.json(rowObj);
+                if (rowObj.length) {
+                    let i = 0;
+                    start();
+                    function start() {
+                        if (i === rowObj.length) res.json({data: 'Обновления сохранены'})
+                        else {
+                            const sql = `UPDATE TOVAR_NAME SET ${createSetSQL(rowObj[i])} WHERE NUM = ${rowObj[i].NUM}`;
+                            insert(opt, sql)
+                                .then(() => {
+                                    i++;
+                                    start()})
+                                .catch(err => console.log('error', err))
+                        }
+                    }
+                    function createSetSQL(prod) {
+                        let result = '';
+                        for (let p in prod) {
+                            if (p === 'NUM') {}//не записуем
+                            else if (!result) result += `${p} = ${checkData(prod[p])}`;
+                            else result = result + `, ${p} = ${checkData(prod[p])}`;
+                        }
+                        return result;
+                    }
+                    function checkData(data) {
+                        if (typeof data === 'string') return `'${data}'`;
+                        else if ((typeof data === 'number') || (data === null)) return data;
+                        else {
+                            console.error(`Wrong data: ${typeof data} ${data}`);
+                            return null;
+                        }
+                    }
+                } else {
+                    res.json({err: 'Файл пуст'});
+                }
+            })
+            .catch(err => console.log(err))
     })
     // .get('/export', (req, res) => {
     //     // const rows = xlsx.readFile('public\\price\\export.xlsx');
@@ -218,23 +301,20 @@ function watchPrice(opt, data, fields) {
         if (!isWatch) {
             isWatch = true;
             setTimeout(() => {
-                information.info = 'XLSX файл создан';
+                information.info = '...наблюдаю за изменениями';
                 watcher
                     .on('change', path => {
                         console.log('change');
-                        setTimeout(() => {
-                            readXlsxFile(path)
-                                //сверить старые данные с новыми и вернуть только изменившиеся
-                                .then(rows => transformData(rows, fields))
-                                .then(rows => update(opt, rows, fields))
-                                .then(d => res(d))
-                                // .then(d => console.log(d))
-                                .catch(err => rej(err))
-                        }, 3000);
-                    })
+                        store.path = path;
+                        store.opt = opt;
+                        store.fields = fields;
+                        //спросит сохранить изменения в файле?
+                        information.request = 'Сохранять изменения в УкрСклад?';
+                    });
+                res({err: null, data: 'Наблюдение установлено'});
             }, 5000);
         } else {
-            console.log('За файлом уже наблюдают');
+            res({err: null, data: 'Наблюдение установлено'})
         }
     })
 }
@@ -261,6 +341,7 @@ function watchPrice(opt, data, fields) {
 //преоброзовать данные
 function transformData(data, fields) {
     console.log('transformData');
+    information.info = '...преоброзовую данные';
     const result = [];
     data.forEach((d, i) => {
         //console.log('transformData', d);
@@ -268,10 +349,8 @@ function transformData(data, fields) {
             result.push(getObj(d));
         }
     });
-    console.log(result);
     return result;
     function getObj(row) {
-        console.log('getObj');
         const result = {}
         data[0].forEach((d, i) => {
             if (checkingFields(d, fields)) result[d] = row[i];
@@ -279,12 +358,9 @@ function transformData(data, fields) {
         return result;
     }
     function checkingFields(field, fields) {
-        console.log('checkingFields');
         let find = false;
         const defaultFields = ['NUM', 'NAME', 'CENA', 'CENA_R', 'CENA_O', 'KOD', 'CENA_CURR_ID', 'CENA_OUT_CURR_ID', 'KOLVO_MIN', 'CENA_1', 'CENA_2', ...fields];
-        console.log(defaultFields);
         defaultFields.forEach(d => {
-            console.log(d, field);
             if (d === field) find = true;
         });
         return find;
@@ -293,6 +369,7 @@ function transformData(data, fields) {
 //обновляем информацию
 function update(opt, data, additionalfields) {
     console.log('update:', data.length);
+    information.info = '...обновляю данные';
     return new Promise((res, rej) => {
         let i = 0;
         setTimeout(start, 5000);
