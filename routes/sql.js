@@ -127,8 +127,8 @@ router
                 const {path, fields, opt} = store;
                 if (path) {
                     information.info = '...читаю файл'
-                    console.log(path);
-                    readXlsxFile(path, fields)
+                    console.log(path, fields);
+                    readXlsxFile(path)
                         //сверить старые данные с новыми и вернуть только изменившиеся
                         .then(rows => transformData(rows, fields))
                         .then(rows => update(opt, rows, fields))
@@ -175,6 +175,7 @@ router
                     let i = 0;
                     start();
                     function start() {
+                        information.info = `Процесс обновления цен ${rowObj.length}/${i}`;
                         if (i === rowObj.length) res.json({data: 'Обновления сохранены'})
                         else {
                             const sql = `UPDATE TOVAR_NAME SET ${createSetSQL(rowObj[i])} WHERE NUM = ${rowObj[i].NUM}`;
@@ -341,9 +342,11 @@ function watchPrice(opt, data, fields) {
 //преоброзовать данные
 function transformData(data, fields) {
     console.log('transformData');
+    //console.log(data.rows);
+    if (Array.isArray(data.rows)) console.log(data.rows.length);
     information.info = '...преоброзовую данные';
     const result = [];
-    data.forEach((d, i) => {
+    data.rows.forEach((d, i) => {
         //console.log('transformData', d);
         if (i) {
             result.push(getObj(d));
@@ -352,7 +355,7 @@ function transformData(data, fields) {
     return result;
     function getObj(row) {
         const result = {}
-        data[0].forEach((d, i) => {
+        data.rows[0].forEach((d, i) => {
             if (checkingFields(d, fields)) result[d] = row[i];
         });
         return result;
@@ -374,7 +377,7 @@ function update(opt, data, additionalfields) {
         let i = 0;
         setTimeout(start, 5000);
         function start() {
-            //information.info = `Процесс обновления цен ${data.length}/${i}`;
+            information.info = `Процесс обновления цен ${data.length}/${i}`;
             if (data.length === i) {
                 //information.info = 'Обновление завершено';
                 //information.status = false;

@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.8.0';
+const version = '2.8.1';
 
 socket
     .on('connect', () => {
@@ -340,15 +340,20 @@ function downloadTTN() {
     const date = $('#modal-ttn input.date').val();
     const socket2 = io('https://apxu-prom.herokuapp.com/chat');
     $('#modal-ttn').modal('hide');
-    const date1 = date.slice(0, 10);
-    const date2 = date.slice(11, 21);
-    socket2.emit('find ttn', [date1, date2], (err, docs) => {
+    socket2.emit('find ttn', date.split(' '), (err, docs) => {
         socket2.disconnect();
-        socket.emit('updateTTN', docs, (err, info) => {
-            $('.alert').html(`Загрузка ТТН закончена`).removeClass('hidden');
-            setTimeout(() => {$('.alert').addClass('hidden')}, 10000);
-            console.log(err, info);
-        })
+        if (err) {
+            console.error(err);
+            return $('.alert').html('ОШИБКА: Что то пошло не так');
+        }
+        if (docs && docs.length) {
+            socket.emit('updateTTN', docs, (err, info) => {
+                $('.alert').html(`Загрузка ТТН закончена`).removeClass('hidden');
+                setTimeout(() => {$('.alert').addClass('hidden')}, 10000);
+            })
+        } else {
+            $('.alert').html('В этой дате ТТН не найдены').removeClass('hidden');
+        }
     })
 }
 
@@ -359,14 +364,7 @@ function openTTNWindow() {
 //получить две даты
 function getTwoDate() {
     const date = dateNow.toJSON().slice(0,10);
-    const arr = date.split('-');
-    let date1;
-    if (arr[2] === '01') {
-        date1 = date;
-    } else {
-        date1 = `${arr[0]}-${arr[1]}-${+arr[2]-1}`;
-    }
-    return `${date1} ${date}`;
+    return `${date} ${date}`;
 }
 
 function openPrice() {
@@ -1155,7 +1153,7 @@ function downloadPhoto(byGroup) {
     socket.emit('downloadPhoto', byGroup, (err, images) => {
         if (err) console.log(err);
         saveImages(images)
-            .then(r => console.log(r));
+            .then(r => $('.alert').html(r).removeClass('hidden'));
     })
 }
 //сохранение фото
@@ -1166,7 +1164,7 @@ function saveImages(images) {
         function start() {
             if (i === images.length) {
                 progress(false);
-                res('ok');
+                res('Загрузка фото окончена');
             } else {
                 const data = images[i];
                 if (data.URL.indexOf('https://images.ua.prom.st/') !== -1) {
