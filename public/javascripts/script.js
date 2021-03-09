@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.8.1';
+const version = '2.9.0';
 
 socket
     .on('connect', () => {
@@ -131,7 +131,7 @@ socket
             default: console.error('Неизвестный кейс: ' + type);
         }
     })
-    .on('xlsx', (data, msg, filename, cb) => {
+    .on('xlsx', (data, msg, filename, type, cb) => {
         //show the window for choice, save or not
         const date = new Date();
         openInfoWindow(`${msg} (имя файла будет: ${filename} ${date.toDateString()})`)
@@ -139,7 +139,7 @@ socket
                 console.log(data);
                 if (res) {
                     //if save, send the data on save
-                    saveXlsx(data, `${filename} ${date.toDateString()}`)
+                    saveXlsx(data, `${filename} ${date.toDateString()}`, type)
                         .then(r => cb(null, r))
                         .catch(err => cb(err, null));
                 } else {
@@ -233,14 +233,15 @@ function switchActive(elem) {
     $(elem).hasClass('active') ? $(elem).removeClass('active') : $(elem).addClass('active');
 }
 //save data in .xlsx file
-function saveXlsx(data, filename) {
+function saveXlsx(data, filename, type) {
+    console.log(data);
     return new Promise((res, rej) => {
         fetch('/sql/xlsx', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json;charset=utf-8'
                 },
-                body: JSON.stringify({data: data, filename: filename})})
+                body: JSON.stringify({data: data, filename: filename, type: type})})
             .then(res => res.json())
             .then(body => res(body))
     })

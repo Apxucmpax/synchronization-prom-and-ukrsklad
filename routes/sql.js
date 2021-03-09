@@ -144,12 +144,13 @@ router
                     information.err = 'Путь для чтения файла отстутствует';
                 }
             }
+        } else {
+            res.json(information);
         }
-        res.json(information);
     })
     .post('/xlsx', (req, res) => {
-        const {data, filename} = req.body;
-        createXLSPrice((filename)?filename:'default', data)
+        const {data, filename, type} = req.body;
+        createXLSPrice((filename)?filename:'default', data, type)
             .then(arr => res.json({err: null, data: 'Сохранино'}))
             .catch(err => res.json({err: err, data: null}))
     })
@@ -264,7 +265,7 @@ function insert(opt, sql) {
     })
 }
 //создаем xlsx файл для исправления цен
-function createXLSPrice(fileName, arr) {
+function createXLSPrice(fileName, arr, type) {
     return new Promise((res, rej) => {
         information.info = 'Создаем XLSX файл';
         information.status = true;
@@ -272,7 +273,7 @@ function createXLSPrice(fileName, arr) {
         const data = {
             sheets: [
                 {
-                    header: createHeader(arr[0]),
+                    header: (type === 'export')?createHeaderExport():createHeader(arr[0]),
                     items: arr,
                     sheetName: 'sheet1',
                 }
@@ -282,6 +283,23 @@ function createXLSPrice(fileName, arr) {
         jexcel.writeXlsx(data);
         res(arr);
     })
+}
+//create header export
+function createHeaderExport() {
+    return [
+        {sku: 'Код_товара'},
+        {name: 'Название_позиции'},
+        {type: 'Тип_товара'},
+        {price: 'Цена'},
+        {currency: 'Валюта'},
+        {unit: 'Еденица_измерения'},
+        {prices: 'Оптовая_цена'},
+        {min_quant: 'Минимальный_заказ_опт'},
+        {presence: 'Наличие'},
+        {id: 'Уникальный_идентификатор'},
+        {group: 'Идентификатор_группы'},
+        {external_id: 'Идентификатор_товара'}
+    ]
 }
 //create header
 function createHeader(prod) {
@@ -319,26 +337,6 @@ function watchPrice(opt, data, fields) {
         }
     })
 }
-//сверяем что изменилось
-// function checkChenges(newData, oldData, additionalFields) {
-//     const fields = ['NAME', 'NUM', 'CENA', 'CENA_O', 'CENA_R', 'KOD', 'CENA_CURR_ID', 'CENA_OUT_CURR_ID', 'KOLVO_MIN'].concat(additionalFields);
-//     const result = [];
-//     oldData.forEach((o, i) => {
-//         let chenge = false;
-//         const n = newData[i];
-//         if (o.NUM === n.NUM) {
-//             //нужно сверить все свойства
-//             fields.forEach(f => {
-//                 if (!chenge) {
-//                     if (o[f] !== n[f]) {
-//                         result.push(n);
-//                     }
-//                 }
-//             })
-//         }
-//     });
-//     return result;
-// }
 //преоброзовать данные
 function transformData(data, fields) {
     console.log('transformData');
