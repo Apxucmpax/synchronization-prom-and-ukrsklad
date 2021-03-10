@@ -292,7 +292,7 @@ function createHeaderExport() {
         {type: 'Тип_товара'},
         {price: 'Цена'},
         {currency: 'Валюта'},
-        {unit: 'Еденица_измерения'},
+        {unit: 'Единица_измерения'},
         {prices: 'Оптовая_цена'},
         {min_quant: 'Минимальный_заказ_опт'},
         {presence: 'Наличие'},
