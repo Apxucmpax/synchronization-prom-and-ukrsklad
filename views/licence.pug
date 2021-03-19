@@ -1,0 +1,23 @@
+extends layout
+
+block content
+    div.container(style="text-align: center; display: flex; justify-content: center;")
+        div.cont
+            div.thumb
+                h2 Эконом
+                h1(style="font-weight: bolder;") $10
+                p на месяц
+        div.cont
+            div.thumb
+                h2 Годовой
+                h1(style="font-weight: bolder;") $100
+                p на год
+        div.cont
+            div.thumb
+                h2 Безлимит
+                h1(style="font-weight: bolder;") $300
+                p неограниченный
+    button.btn.btn-outline-dark(onclick="window.location.pathname = '/'", style="position: absolute; top: 0") Назад
+    footer.text-muted
+        div.container-fluid
+            p Техподдержка +38 097 90 44 874

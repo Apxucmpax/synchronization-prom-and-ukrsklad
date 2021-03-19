@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.9.0';
+const version = '2.10.0';
 
 socket
     .on('connect', () => {

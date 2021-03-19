@@ -116,3 +116,14 @@ footer {
 .custom-control-input:focus:not(:checked)~.custom-control-label::before {
   border-color: #28a745;
 }
+
+.thumb {
+  border: 1px solid black;
+  border-radius: 5px;
+  padding: 5px;
+  width: 200px;
+}
+
+.cont {
+  padding: 10px;
+}
