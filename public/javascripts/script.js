@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.11.0';
+const version = '2.11.1';
 
 socket
     .on('connect', () => {
@@ -767,9 +767,10 @@ function createTable8(group, root) {
                     <path fill-rule="evenodd" d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.236.236 0 0 1 .02-.022z"/>
                   </svg>`;
         group.groups.forEach(g => {
+            const lvl = group.ids[g.id].level;
             //если в группе родитель рут, добавляем в таблицу
-            const elem = `<tr id="group-${g.id}">
-                                <td class="group-name" style="padding-left: ${group.ids[g.id].level}rem">${g.name}</td>
+            const elem = `<tr id="group-${g.id}" class="${(!lvl)?'':' hidden'}" data-level="${lvl}">
+                                <td class="group-name" style="padding-left: ${lvl}rem">${g.name}<span class="open-group open-g">(+)</span></td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-dark send-group" data-group="${g.id}">${icon}</button>
                                 </td>
@@ -785,6 +786,30 @@ function createTable8(group, root) {
         $('.send-group').on('click', (e) => {
             res(e)
         })
+        //открыть закрыть группы
+        $('.open-group').on('click', (e) => {
+            //берем родителя и проверяем кто следующий
+            const parent = e.target.parentElement.parentElement;
+            if ($(e.target).hasClass('open-g')) {
+                $(e.target).removeClass('open-g').addClass('close-g').text('(-)');
+                unHidden(parent);
+            } else if ($(e.target).hasClass('close-g')) {
+                $(e.target).removeClass('close-g').addClass('open-g').text('(+)');
+                addHidden(parent, parent.dataset.level)
+            } else console.error('Этот кейс не должен сработать');
+        })
+        function unHidden(parent) {
+            if (parent.nextSibling && $(parent.nextSibling).hasClass('hidden')) {
+                $(parent.nextSibling).removeClass('hidden');
+                unHidden(parent.nextSibling);
+            }
+        }
+        function addHidden(parent, lvl) {
+            if (parent.nextSibling && (parent.nextSibling.dataset.level > lvl)) {
+                $(parent.nextSibling).addClass('hidden');
+                addHidden(parent.nextSibling, lvl);
+            }
+        }
     });
 }
 
