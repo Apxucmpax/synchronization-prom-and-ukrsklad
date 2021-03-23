@@ -127,3 +127,11 @@ footer {
 .cont {
   padding: 10px;
 }
+
+.open-group {
+  font-weight: bolder;
+}
+
+.open-group:hover {
+  cursor: pointer;
+}

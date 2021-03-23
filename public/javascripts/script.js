@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.10.0';
+const version = '2.11.0';
 
 socket
     .on('connect', () => {
@@ -55,7 +55,7 @@ socket
         progress(status, title, total, step);
     })
     .on('alert', (text) => {
-        $('.alert').html(text).removeClass('hidden');
+        showAlert(text);
     })
     .on('console', (type, item) => console.log(type, item))
     .on('infoWindow', (msg, cb) => {
@@ -195,19 +195,17 @@ function onImport(date, setting) {
     if (!date) {
         date = getTwoDate().split(' ');
     }
-    $('.alert').html('');
     socket.emit('import', date, setting, (err, result) => {
         if (err) {
-            $('.alert').html(`Что то пошло не так: Дата: ${date}`).removeClass('hidden');
+            showAlert(`Что то пошло не так: Дата: ${date}`);
             return modalAlert(handlerError(err));
         }
-        if (result === null || !result.length) $('.alert').html(`Накладных нет`);
+        if (result === null || !result.length) showAlert(`Накладных нет`);
         else {
-            $('.alert').html(`Загруженно накладных: ${result.length} шт.`);
+            showAlert(`Загруженно накладных: ${result.length} шт.`);
             //открывать окно для импорта писем за другой день
             openDateImport(result[result.length - 1].date_created.slice(0, 10));
         }
-        $('.alert').removeClass('hidden');
         console.log(result);
     });
 }
@@ -218,7 +216,7 @@ function onImportData() {
     const fields = [];
     const elems = $('.import-data-field.active');
     if (!elems.length) {
-        $('.alert').html('Не выбраны поля для импорта').removeClass('hidden');
+        showAlert('Не выбраны поля для импорта');
     }
     for (let i = 0; i < elems.length; i++) {
         fields.push(elems[i].dataset.field);
@@ -251,12 +249,10 @@ function onExport(select) {
     syncExport = true;
     selectExport = select;
     $('#modal-export').modal('hide');
-    $('.alert').html('');
     socket.emit('export', Date.now(), select, (err, res) => {
-        $('.alert').removeClass('hidden');
-        if (err) $('.alert').html(err);
+        if (err) showAlert(err);
         else {
-            $('.alert').html('Экспорт окончен');
+            showAlert('Экспорт окончен');
             syncExport = false;
             selectExport = '';
             console.log(err, res);
@@ -287,8 +283,7 @@ function onDateImport(setting) {
 function onChangePrice(group) {
     //get additional field
     socket.emit('getAdditionalField', (fields) => {
-        $('.alert').html('Прайс сохранен');
-        $('.alert').removeClass('hidden');
+        showAlert('Прайс сохранен');
         if (group) {
             //открываем окно выбора групп
             $('#modal-groups').modal('show');
@@ -299,7 +294,7 @@ function onChangePrice(group) {
                 //сортируем группы
                 sortGroup(groups.data, 0)
                     .then(d => createTable7(d, 0))
-                    .then(n => {
+                    .then(nums => {
                         //закрываем окно групп
                         $('#modal-groups').modal('hide');
                         return fetch('/sql/data', {
@@ -307,13 +302,13 @@ function onChangePrice(group) {
                             headers: {
                                 'Content-Type': 'application/json;charset=utf-8'
                             },
-                            body: JSON.stringify({opt: option, data: n.currentTarget.dataset.group, fields: fields, watch: false, filename: 'price'})
+                            body: JSON.stringify({opt: option, data: nums, fields: fields, watch: false, filename: 'price'})
                         });
                     })//скачиваем полученную позицию(n.currentTarget.dataset.group)
                     .then(res => res.json())
                     .then(r => {
                         status();
-                        $('.alert').html(r.data).removeClass('hidden');
+                        showAlert(r.data);
                     })
                     .catch(err => console.log(err))
                 //выводим группы в окно
@@ -329,8 +324,7 @@ function onChangePrice(group) {
                 .then(r => {
                     //надо подписаться на изменения
                     status();
-                    $('.alert').removeClass('hidden');
-                    $('.alert').html(r.data);
+                    showAlert(r.data);
                     console.log(null, r.data)})
                 .catch((err) => console.log(err, null));
         }
@@ -345,15 +339,14 @@ function downloadTTN() {
         socket2.disconnect();
         if (err) {
             console.error(err);
-            return $('.alert').html('ОШИБКА: Что то пошло не так');
+            return showAlert('ОШИБКА: Что то пошло не так');
         }
         if (docs && docs.length) {
             socket.emit('updateTTN', docs, (err, info) => {
-                $('.alert').html(`Загрузка ТТН закончена`).removeClass('hidden');
-                setTimeout(() => {$('.alert').addClass('hidden')}, 10000);
+                showAlert(`Загрузка ТТН закончена`);
             })
         } else {
-            $('.alert').html('В этой дате ТТН не найдены').removeClass('hidden');
+            showAlert('В этой дате ТТН не найдены');
         }
     })
 }
@@ -495,7 +488,7 @@ function onTrash(id, orderId) {
                 })
                 .catch(err => {
                     console.error({err: err, info: 'onTrash'});
-                    $('.alert').html(err).removeClass('hidden');
+                    showAlert(err);
                 });
         }
     });
@@ -687,7 +680,8 @@ function createTable6(tovar) {
 function createTable7(groups, root) {
     //в группах создаем вложеность
     return new Promise((res, rej) => {
-        $('#modal-groups .modal-body').html(`<table class="table table-sm">
+        $('#modal-groups .modal-body').html(`<button class="btn btn-sm btn-outline-dark send-group">Загрузить</button>
+                                            <table class="table table-sm">
                                                 <thead>
                                                     <tr>
                                                         <th scope="col">Название</th>
@@ -695,17 +689,18 @@ function createTable7(groups, root) {
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
-                                            </table>`);
+                                            </table>
+                                            <button class="btn btn-sm btn-outline-dark send-group">Загрузить</button>`);
         const tableBody = $('#modal-groups tbody');
         const icon = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-check" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                     <path fill-rule="evenodd" d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.236.236 0 0 1 .02-.022z"/>
                   </svg>`;
         groups.forEach(g => {
             //если в группе родитель рут, добавляем в таблицу
-            const elem = `<tr id="group-${g.NUM}">
-                                <td class="group-name" style="padding-left: ${g.LEVEL}rem">${g.NAME}</td>
+            const elem = `<tr id="group-${g.NUM}" class="${(!g.LEVEL)?'':' hidden'}" data-level="${g.LEVEL}">
+                                <td class="group-name" style="padding-left: ${g.LEVEL}rem">${g.NAME}<span class="open-group open-g">(+)</span></td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-dark send-group" data-group="${g.NUM}">${icon}</button>
+                                    <button class="btn btn-sm btn-outline-dark check-group" data-group="${g.NUM}">${icon}</button>
                                 </td>
                             </tr>`;
             if (g.GRUPA === root) {
@@ -716,7 +711,43 @@ function createTable7(groups, root) {
                 parent.after(elem);
             }
         });
-        $('.send-group').on('click', (e) => res(e));
+        //открыть закрыть группы
+        $('.open-group').on('click', (e) => {
+            //берем родителя и проверяем кто следующий
+            const parent = e.target.parentElement.parentElement;
+            if ($(e.target).hasClass('open-g')) {
+                $(e.target).removeClass('open-g').addClass('close-g').text('(-)');
+                unHidden(parent);
+            } else if ($(e.target).hasClass('close-g')) {
+                $(e.target).removeClass('close-g').addClass('open-g').text('(+)');
+                addHidden(parent, parent.dataset.level)
+            } else console.error('Этот кейс не должен сработать');
+        })
+        //выбрать группу
+        $('.check-group').on('click', (e) => {
+            if ($(e.currentTarget).hasClass('active')) {
+                $(e.currentTarget).removeClass('active');
+            } else $(e.currentTarget).addClass('active');
+        })
+        $('.send-group').on('click', (e) => {
+            const result = [];
+            //собираем все кнопки
+            const btns = $('.check-group.active').toArray();
+            btns.forEach(b => result.push(b.dataset.group));
+            res(result);
+        });
+        function unHidden(parent) {
+            if (parent.nextSibling && $(parent.nextSibling).hasClass('hidden')) {
+                $(parent.nextSibling).removeClass('hidden');
+                unHidden(parent.nextSibling);
+            }
+        }
+        function addHidden(parent, lvl) {
+            if (parent.nextSibling && (parent.nextSibling.dataset.level > lvl)) {
+                $(parent.nextSibling).addClass('hidden');
+                addHidden(parent.nextSibling, lvl);
+            }
+        }
     })
 }
 //таблица групп
@@ -985,34 +1016,46 @@ function status() {
         start();
         //let data = '';
         function start(data) {
-            console.log('status');
-            const query = (data)?`?${data}`:'';
-            fetch('/sql/status' + query, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json;charset=utf-8'
-                }})
-                .then(res => res.json())
-                .then(data => {
-                    console.log(data.info);
-                    $('.alert').html(data.info);
-                    if (data.request === 'Сохранять изменения в УкрСклад?') {
-                        openInfoWindow(data.request)
-                            .then(bool => start(`saveFile=${bool}&removeRequest=true`))
-                    }
-                    else if(data.status) {
-                        setTimeout(start, 1000);
-                    } else {
-                        $('.alert').html('Слежение окончено');
-                        console.log('Подписка на информацию остановлена');
-                        sentStatus = false;
-                    }
-                })
-                .catch(err => console.log(err))
+            if (sentStatus) {
+                console.log('status');
+                const query = (data)?`?${data}`:'';
+                fetch('/sql/status' + query, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json;charset=utf-8'
+                    }})
+                    .then(res => res.json())
+                    .then(data => {
+                        showAlert(data.info);
+                        if (data.request === 'Сохранять изменения в УкрСклад?') {
+                            openInfoWindow(data.request)
+                                .then(bool => start(`saveFile=${bool}&removeRequest=true`))
+                        }
+                        else if(data.status) {
+                            setTimeout(start, 1000);
+                        } else {
+                            showAlert('Слежение окончено');
+                            sentStatus = false;
+                        }
+                    })
+                    .catch(err => console.log(err))
+            } else {
+                showAlert('Слежение остановлено');
+            }
         }
     } else {
         console.log('Проверка статуса уже включена, повтороно включить не получится');
     }
+}
+//остановить подписку на статус
+function stopWatch() {
+    sentStatus = false;
+}
+//вывод сообщения
+function showAlert(html) {
+    $('.alert').html(html).removeClass('hidden');
+    console.log('alert', html);
+    setTimeout(() => {$('.alert').addClass('hidden')}, 20000);
 }
 //сортировка групп
 function sortGroup(groups, root) {
@@ -1114,7 +1157,7 @@ function calibAuto() {
             function start() {
                 if (i === result.length) {
                     progress(false);
-                    $('.alert').html(`Исправление окончено, изменено ${result.length} названий`).removeClass('hidden');
+                    showAlert(`Исправление окончено, изменено ${result.length} названий`);
                     //запускаем вторую функцию
                     let i = 0;
                     start2();
@@ -1132,7 +1175,7 @@ function calibAuto() {
             function start2() {
                 if (i === result2.length) {
                     progress(false);
-                    $('.alert').html(`Исправление окончено, изменено ${result2.length} позиций`).removeClass('hidden');
+                    showAlert(`Исправление окончено, изменено ${result2.length} позиций`);
                     //запускаем вторую функцию
                 } else {
                     progress(true, 'Добавление в удаленные позиции статус DELETED', result2.length, i);
@@ -1154,7 +1197,7 @@ function downloadPhoto(byGroup) {
     socket.emit('downloadPhoto', byGroup, (err, images) => {
         if (err) console.log(err);
         saveImages(images)
-            .then(r => $('.alert').html(r).removeClass('hidden'));
+            .then(r => showAlert(r));
     })
 }
 //сохранение фото
@@ -1227,7 +1270,7 @@ function removePhoto(arr) {
         function start() {
             if (i === arr.length) {
                 progress(false);
-                $('.alert').html('Удаление изоброжений окончено:' + arr.length).removeClass('hidden');
+                showAlert('Удаление изоброжений окончено:' + arr.length);
                 res();
             }
             else {
@@ -1244,7 +1287,7 @@ function removePhoto(arr) {
 }
 //save changes
 function saveChanges() {
-    $('.alert').html('Сохраняю изменения').removeClass('hidden');
+    showAlert('Сохраняю изменения');
     fetch('sql/save', {
             method: 'POST',
             headers: {
@@ -1255,10 +1298,9 @@ function saveChanges() {
         .then(r => r.json())
         .then(res => {
             if (res.err) {
-                console.error(res.err);
-                $('.alert').html(res.err).removeClass('hidden');
+                showAlert(res.err);
             } else {
-                $('.alert').html(res.data).removeClass('hidden');
+                showAlert(res.data);
             }
         })
 }

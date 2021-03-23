@@ -103,7 +103,7 @@ router
         //console.log(req.body);
         let where = '';
         const {opt, data, fields, watch, filename} = req.body;
-        if (data) where = ` AND TIP = ${data}`;
+        if (data) where = ` AND TIP IN (${data.join()})`;
         console.log('fields', fields);
         //скачиваем базу
         select(opt, `SELECT NUM, NAME, CENA, CENA_R, CENA_O, KOD, CENA_CURR_ID, CENA_OUT_CURR_ID, KOLVO_MIN, CENA_1, CENA_2${checkField(fields)} FROM TOVAR_NAME WHERE (DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)` + where)
@@ -159,22 +159,18 @@ router
         readXlsxFile('public\\price\\price.xlsx')
             .then(rows => {
                 const rowObj = [];
+                let error;
                 rows.forEach((r, k) => {
                     if (k) {
                         rowObj.push(getObj(r))
+                    } else {
+                        error = checkHeader(r);
                     }
                 })
-                function getObj(row) {
-                    const result = {}
-                    rows[0].forEach((d, i) => {
-                        result[d] = row[i];
-                    });
-                    return result;
-                }
-                //res.json(rowObj);
-                if (rowObj.length) {
+                if (rowObj.length && !error) {
                     let i = 0;
                     start();
+
                     function start() {
                         information.info = `Процесс обновления цен ${rowObj.length}/${i}`;
                         if (i === rowObj.length) res.json({data: 'Обновления сохранены'})
@@ -183,19 +179,23 @@ router
                             insert(opt, sql)
                                 .then(() => {
                                     i++;
-                                    start()})
+                                    start()
+                                })
                                 .catch(err => console.log('error', err))
                         }
                     }
+
                     function createSetSQL(prod) {
                         let result = '';
                         for (let p in prod) {
-                            if (p === 'NUM') {}//не записуем
+                            if (p === 'NUM') {
+                            }//не записуем
                             else if (!result) result += `${p} = ${checkData(prod[p])}`;
                             else result = result + `, ${p} = ${checkData(prod[p])}`;
                         }
                         return result;
                     }
+
                     function checkData(data) {
                         if (typeof data === 'string') return `'${data}'`;
                         else if ((typeof data === 'number') || (data === null)) return data;
@@ -204,8 +204,14 @@ router
                             return null;
                         }
                     }
-                } else {
-                    res.json({err: 'Файл пуст'});
+                } else if (error) { res.json({err: error});
+                } else res.json({err: 'Файл пуст'});
+                function getObj(row) {
+                    const result = {}
+                    rows[0].forEach((d, i) => {
+                        result[d] = row[i];
+                    });
+                    return result;
                 }
             })
             .catch(err => console.log(err))
@@ -217,6 +223,15 @@ router
 ;
 
 module.exports = router;
+//check header
+function checkHeader(arr) {
+    let result = null;
+    const allFilds = ['NUM', 'NAME', 'ED_IZM', 'TIP', 'CENA', 'VISIBLE', 'KOD', 'GARAN', 'CENA_R', 'CENA_O', 'CENA_CURR_ID', 'CENA_OUT_CURR_ID', 'DOPOLN', 'IS_USLUGA', 'CENA_1', 'CENA_2', 'TOV_FASOVKA', 'TOV_UPAKOVKA_COUNT', 'TOV_VES', 'TOV_LENGTH', 'TOV_WIDTH', 'TOV_SCANCODE', 'TOV_SCANCODE_IN', 'IS_PRICE_INVISIBLE', 'IS_PDV', 'KOLVO_MIN', 'DOPOLN1', 'DOPOLN2', 'DOPOLN3', 'CENA_3', 'DOPOLN4', 'DOPOLN5', 'TOV_DESCR_BIG', 'IS_COMPL', 'KOD_UKT_ZED', 'IM_NUM', 'IS_IGNOR_ZNIG', 'ANALOG_NUM', 'TOV_PROIZV', 'TOV_HEIGHT', 'ED_IZM2', 'IS_AKCIZ', 'DOC_USER_ID', 'DOC_LAST_USER_ID', 'DOC_CREATE_TIME', 'DOC_MODIFY_TIME', 'KOD_PILGI', 'IS_IMPORT', 'KOD_SG', 'IS_IGNOR_NAC'];
+    arr.forEach(fild => {
+        if (!(allFilds.indexOf(fild) + 1)) result = `Неподдерживаемое название столбика: ${fild}`;
+    });
+    return result;
+}
 //check fields
 function checkField(fields) {
     let result = '';
