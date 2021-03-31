@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.12.0';
+const version = '2.12.1';
 
 socket
     .on('connect', () => {
@@ -305,54 +305,59 @@ function onDateImport(setting) {
 }
 //изменение цен
 function onChangePrice(group) {
-    //get additional field
-    socket.emit('getAdditionalField', (fields) => {
-        showAlert('Прайс сохранен');
-        if (group) {
-            //открываем окно выбора групп
-            $('#modal-groups').modal('show');
-            //отправляем запрос на получение всех групп
-            const data = {opt: option, sql: `SELECT NUM, NAME, GRUPA FROM TIP`};
-            getData(data, (err, groups) => {
-                console.log(err, groups);
-                //сортируем группы
-                sortGroup(groups.data, 0)
-                    .then(d => createTable7(d, 0))
-                    .then(nums => {
-                        //закрываем окно групп
-                        $('#modal-groups').modal('hide');
-                        return fetch('/sql/data', {
+    openInfoWindow('Вы уверены что хотите создать новый файл price.xlsx? Все предыдущие изменения в этом файле будут утеряны.')
+        .then((res) => {
+            if (res) {
+                //get additional field
+                socket.emit('getAdditionalField', (fields) => {
+                    showAlert('Прайс сохранен');
+                    if (group) {
+                        //открываем окно выбора групп
+                        $('#modal-groups').modal('show');
+                        //отправляем запрос на получение всех групп
+                        const data = {opt: option, sql: `SELECT NUM, NAME, GRUPA FROM TIP`};
+                        getData(data, (err, groups) => {
+                            console.log(err, groups);
+                            //сортируем группы
+                            sortGroup(groups.data, 0)
+                                .then(d => createTable7(d, 0))
+                                .then(nums => {
+                                    //закрываем окно групп
+                                    $('#modal-groups').modal('hide');
+                                    return fetch('/sql/data', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json;charset=utf-8'
+                                        },
+                                        body: JSON.stringify({opt: option, data: nums, fields: fields, watch: false, filename: 'price'})
+                                    });
+                                })//скачиваем полученную позицию(n.currentTarget.dataset.group)
+                                .then(res => res.json())
+                                .then(r => {
+                                    status();
+                                    showAlert(r.data);
+                                })
+                                .catch(err => console.log(err))
+                            //выводим группы в окно
+                        })
+                    } else {
+                        fetch('/sql/data', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json;charset=utf-8'
                             },
-                            body: JSON.stringify({opt: option, data: nums, fields: fields, watch: false, filename: 'price'})
-                        });
-                    })//скачиваем полученную позицию(n.currentTarget.dataset.group)
-                    .then(res => res.json())
-                    .then(r => {
-                        status();
-                        showAlert(r.data);
-                    })
-                    .catch(err => console.log(err))
-                //выводим группы в окно
-            })
-        } else {
-            fetch('/sql/data', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json;charset=utf-8'
-                },
-                body: JSON.stringify({opt: option, data:null, watch: true, fields: fields, filename: 'price'})})
-                .then(res => res.json())
-                .then(r => {
-                    //надо подписаться на изменения
-                    status();
-                    showAlert(r.data);
-                    console.log(null, r.data)})
-                .catch((err) => console.log(err, null));
-        }
-    })
+                            body: JSON.stringify({opt: option, data:null, watch: true, fields: fields, filename: 'price'})})
+                            .then(res => res.json())
+                            .then(r => {
+                                //надо подписаться на изменения
+                                status();
+                                showAlert(r.data);
+                                console.log(null, r.data)})
+                            .catch((err) => console.log(err, null));
+                    }
+                })
+            }
+        });
 }
 
 function downloadTTN() {
