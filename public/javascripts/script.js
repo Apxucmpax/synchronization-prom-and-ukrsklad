@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.11.2';
+const version = '2.12.0';
 
 socket
     .on('connect', () => {
@@ -24,14 +24,17 @@ socket
         else if (!name) modalAlert('У вас отсутствует название фирмы');
         else if (!option) modalAlert('У вас отсутствуют опции подключения к базе данных');
         else {
-            socket.emit('auth', token, name, version, (err, info) => {
+            socket.emit('auth', token, name, version, (err, info, modules) => {
                 if (err) return modalAlert(err); //выводим алерт окно
                 console.log(info);
+                if (modules) showModules(modules);
                 online = changeOnlineStatus('success'); //все хорошо
                 //установка свитча
                 stateSwitch(info);
                 //if (online) checkExport();//проверяем был ли запущен экспорт цен
                 //setInterval(checkConnect, 60000);
+                //проверка на дубликаты
+                checkDouble();
             });
         }
     })
@@ -209,6 +212,26 @@ function onImport(date, setting) {
         console.log(result);
     });
 }
+//import orders second shop
+function ssOnImport(date, setting) {
+    //close window
+    $('#modal-settings').modal('hide');
+    if (!date) {
+        date = getTwoDate().split(' ');
+    }
+    socket.emit('modules', 'importSS', date, setting, (err, result) => {
+        console.log(result);
+        if (err) {
+            showAlert(`Что то пошло не так: Дата: ${date}`);
+            return modalAlert(handlerError(err));
+        }
+        if (result === null || !result.length) showAlert(`Накладных нет`);
+        else {
+            showAlert(`Загруженно накладных: ${result.length} шт.`);
+        }
+        console.log(result);
+    });
+}
 //import data from Prom
 function onImportData() {
     const byGroup = $('#modal-import-data').data('group');
@@ -272,10 +295,11 @@ function onExportNew() {
 
 function onDateImport(setting) {
     const date = $('#modal-import input').val().split(' ');
-    //const date1 = date.slice(0, 10);
-    //const date2 = date.slice(11, 21);
-    if (date !== '') {
-        onImport(date, setting);
+    const data = $('#modal-import')[0].dataset;
+    if ((date !== '') && data.type) {
+        if (data.type === 'ss') ssOnImport(date, setting);
+        else if (data.type === 'classic') onImport(date, setting);
+        else console.error('Что то пошло не так', data.type);
     }
     $('#modal-import').modal('hide');
 }
@@ -1329,18 +1353,14 @@ function saveChanges() {
             }
         })
 }
-//export file
-// function exportFile() {
-//     fetch('sql/export', {
-//             method: 'GET'})
-//         .then(r => r.json())
-//         .then(xlsx => {
-//             console.log(xlsx);
-//         })
-// }
-function test2() {
+//show modules
+function showModules(modules) {
+    if (Array.isArray(modules) && modules.length) modules.forEach(m => $(`.${m}`).removeClass('hidden'));
+}
+
+function checkDouble() {
     const result = [];
-    const sql = `SELECT NUM, DOPOLN5, TIP, DOPOLN4 FROM TOVAR_NAME WHERE DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL AND NOT(DOPOLN5 IS NULL)`;
+    const sql = `SELECT NUM, DOPOLN5 FROM TOVAR_NAME WHERE DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL AND NOT(DOPOLN5 IS NULL)`;
     selectBD(option, sql)
         .then(r => {
             console.log(r.data.length);
@@ -1353,55 +1373,31 @@ function test2() {
                     }
                 }
             })
-            console.log(result);
+            if (result.length) {
+                showAlert('ВНИМАНИЕ. Найдены дублекаты Пром ИД. Рекоменуем устранить неисправность, программа может работать некоректно. Список дубликатов вы можите посмотреть в консоле (Ctrl + Shift + i)');
+                console.log('Дубли', result);
+            }
         })
-    //saveBlobBD(option, 'test', 'test', 'test').then(data => cb(data));
-    //тест
-    // $('#modal-settings').modal('hide');
-    // socket.emit('test', Date.now(), false, (err, info) => {
-    //     console.log(err, info)
-    // });
-    //---тест сохранения позиций с ИД но не промовским---
-    // const file = [
-    //     {a: 1, b: 2, c: 3, d: 4, e: 5},
-    //     {a: 1, b: 3, c: 3, d: 4, e: 5},
-    //     {a: 1, b: 2, c: 4, d: 4, e: 5},
-    //     {a: 1, b: 2, c: 3, d: 5, e: 5},
-    //     {a: 1, b: 2, c: 3, d: 4, e: 6}
-    // ];
-    // const type = 'random';
-    // const name = 1111;
-    // switch (type) {
-    //     case 'prom':
-    //         saveCsv(file, name, type).then(data => {
-    //             console.log(data);
-    //             cb(null, data)
-    //         }).catch(err => cb(err, null));
-    //         break;
-    //     case 'random':
-    //         //вызываем окно для ввода названия файл
-    //         const date = new Date();
-    //         const newName = prompt('Введите имя фалйла для сохранения спорных позиций из УкрСклада', date.toDateString());
-    //         if (newName) {
-    //             saveCsv(file, newName, type).then(data => {
-    //                 console.log(data);
-    //                 cb(null, data)
-    //             }).catch(err => cb(err, null));
-    //         } else {
-    //             cb(null, {error: 'Сохранение файла отменено'});
-    //         }
-    //         break;
-    //     default: console.error('Неизвестный кейс: ' + type);
-    // }
-    //---конец теста---
 }
 
 //сохранение товара
 function test3() {
-    // socket.emit('test', (err, info) => {
-    //     //const buff = decoding(info.data);
-    //     console.log(err, info);
-    // });
+    const result = [];
+    const sql = `SELECT NUM, KOD FROM TOVAR_NAME WHERE DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL AND NOT(KOD IS NULL)`;
+    selectBD(option, sql)
+        .then(r => {
+            console.log(r.data.length);
+            const obj = {};
+            r.data.forEach(d => {
+                if (d.KOD) {
+                    if (!obj[d.KOD]) obj[d.KOD] = d.NUM;
+                    else {
+                        result.push(d);
+                    }
+                }
+            })
+            console.log(result);
+        })
 }
 //установка свитча
 function stateSwitch(info){
