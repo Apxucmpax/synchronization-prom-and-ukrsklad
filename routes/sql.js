@@ -188,8 +188,8 @@ router
                     function createSetSQL(prod) {
                         let result = '';
                         for (let p in prod) {
-                            if (p === 'NUM') {
-                            }//не записуем
+                            if (p === 'NUM') {}//не записуем
+                            else if((typeof prod[p] === 'string') && (prod[p].indexOf('��') + 1)) {}//ищем вапросительные знаки и не записываем console.log('��', p, prod)
                             else if (!result) result += `${p} = ${checkData(prod[p])}`;
                             else result = result + `, ${p} = ${checkData(prod[p])}`;
                         }
