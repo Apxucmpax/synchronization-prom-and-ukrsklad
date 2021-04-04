@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.13.0';
+const version = '2.13.1';
 
 socket
     .on('connect', () => {
@@ -194,7 +194,8 @@ function pushData(data, cb) {
     }).catch((err) => cb(err));
 }
 
-function onImport(date, setting) {
+function onImport(date, setting, e) {
+    $(e).attr('disabled', true);
     if (!date) {
         date = getTwoDate().split(' ');
     }
@@ -207,13 +208,16 @@ function onImport(date, setting) {
         else {
             showAlert(`Загруженно накладных: ${result.length} шт.`);
             //открывать окно для импорта писем за другой день
-            openDateImport(result[result.length - 1].date_created.slice(0, 10));
+            //openDateImport(result[result.length - 1].date_created.slice(0, 10));
         }
+        $(e).attr('disabled', false);
         console.log(result);
+
     });
 }
 //import orders second shop
-function ssOnImport(date, setting) {
+function ssOnImport(date, setting, e) {
+    $(e).attr('disabled', true);
     //close window
     $('#modal-settings').modal('hide');
     if (!date) {
@@ -229,6 +233,7 @@ function ssOnImport(date, setting) {
         else {
             showAlert(`Загруженно накладных: ${result.length} шт.`);
         }
+        $(e).attr('disabled', false);
         console.log(result);
     });
 }
@@ -268,7 +273,8 @@ function saveXlsx(data, filename, type) {
     })
 }
 
-function onExport(select) {
+function onExport(select, e) {
+    $(e).attr('disabled', true);
     syncExport = true;
     selectExport = select;
     $('#modal-export').modal('hide');
@@ -282,6 +288,7 @@ function onExport(select) {
             //window.open(`${_baseURL}${res}`);
         }
         progress(false);
+        $(e).attr('disabled', false);
     })
 }
 
@@ -304,13 +311,13 @@ function onDateImport(setting) {
     $('#modal-import').modal('hide');
 }
 //изменение цен
-function onChangePrice(group) {
+function onChangePrice(group, e) {
+    $(e).attr('disabled', true);
     openInfoWindow('Вы уверены что хотите создать новый файл price.xlsx? Все предыдущие изменения в этом файле будут утеряны.')
         .then((res) => {
             if (res) {
                 //get additional field
                 socket.emit('getAdditionalField', (fields) => {
-                    showAlert('Прайс сохранен');
                     if (group) {
                         //открываем окно выбора групп
                         $('#modal-groups').modal('show');
@@ -336,6 +343,7 @@ function onChangePrice(group) {
                                 .then(r => {
                                     status();
                                     showAlert(r.data);
+                                    $(e).attr('disabled', false);
                                 })
                                 .catch(err => console.log(err))
                             //выводим группы в окно
@@ -352,15 +360,19 @@ function onChangePrice(group) {
                                 //надо подписаться на изменения
                                 status();
                                 showAlert(r.data);
-                                console.log(null, r.data)})
+                                console.log(null, r.data);
+                                $(e).attr('disabled', false);})
                             .catch((err) => console.log(err, null));
                     }
                 })
+            } else {
+                $(e).attr('disabled', false);
             }
         });
 }
 
-function downloadTTN() {
+function downloadTTN(e) {
+    $(e).attr('disabled', true);
     const date = $('#modal-ttn input.date').val();
     const socket2 = io('https://apxu-prom.herokuapp.com/chat');
     $('#modal-ttn').modal('hide');
@@ -373,9 +385,11 @@ function downloadTTN() {
         if (docs && docs.length) {
             socket.emit('updateTTN', docs, (err, info) => {
                 showAlert(`Загрузка ТТН закончена`);
+                $(e).attr('disabled', false);
             })
         } else {
             showAlert('В этой дате ТТН не найдены');
+            $(e).attr('disabled', false);
         }
     })
 }
@@ -1246,12 +1260,16 @@ function calibAuto() {
     })
 }
 //загрузка фото
-function downloadPhoto(byGroup) {
+function downloadPhoto(byGroup, e) {
+    $(e).attr('disabled', true);
     //отправляем запрос на сервер, что бы получить список фото
     socket.emit('downloadPhoto', byGroup, (err, images) => {
         if (err) console.log(err);
         saveImages(images)
-            .then(r => showAlert(r));
+            .then(r => {
+                showAlert(r);
+                $(e).attr('disabled', false);
+            });
     })
 }
 //сохранение фото
@@ -1283,7 +1301,8 @@ function saveImages(images) {
     })
 }
 //удалить фото без ID
-function removePhotoWithoutId() {
+function removePhotoWithoutId(e) {
+    $(e).attr('disabled', true);
     //получаем список товаров с id
     const sql = `SELECT NUM, DOPOLN5 FROM TOVAR_NAME WHERE (DOPOLN5 = '' OR DOPOLN5 is NULL)`;
     let prodsWithOutId, images;
@@ -1300,7 +1319,10 @@ function removePhotoWithoutId() {
             console.log(imgForRemove);
             //удаляем фото позиций без ID
             return removePhoto(imgForRemove)})
-        .then(() => console.log('Удаление изоброжений окончено'));
+        .then(() => {
+            console.log('Удаление изоброжений окончено');
+            $(e).attr('disabled', false);
+        });
 }
 //сравнить tovar_images и tovar_name
 function compareImagesAndTovar(images, tovar) {
@@ -1340,8 +1362,9 @@ function removePhoto(arr) {
     })
 }
 //save changes
-function saveChanges() {
-    showAlert('Сохраняю изменения');
+function saveChanges(e) {
+    $(e).attr('disabled', true);
+    showAlert('Сохраняю изменения...');
     fetch('sql/save', {
             method: 'POST',
             headers: {
@@ -1356,6 +1379,7 @@ function saveChanges() {
             } else {
                 showAlert(res.data);
             }
+            $(e).attr('disabled', false);
         })
 }
 //show modules
