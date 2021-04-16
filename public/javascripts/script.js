@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.13.1';
+const version = '2.14.0';
 
 socket
     .on('connect', () => {
@@ -327,6 +327,7 @@ function onChangePrice(group, e) {
                             console.log(err, groups);
                             //сортируем группы
                             sortGroup(groups.data, 0)
+                                .then(d => hideGroups(d))//проверяем какие группы надо скрыть
                                 .then(d => createTable7(d, 0))
                                 .then(nums => {
                                     //закрываем окно групп
@@ -369,6 +370,37 @@ function onChangePrice(group, e) {
                 $(e).attr('disabled', false);
             }
         });
+}
+
+function hideGroups(groups) {
+    return new Promise((res, rej) => {
+        //загружаем конфиг
+        const myHeaders = new Headers();
+        // myHeaders.append('pragma', 'no-cache');
+        myHeaders.append('Cache-Control', 'no-cache');
+
+        const myInit = {
+            method: 'GET',
+            headers: myHeaders,
+        };
+        fetch('/config', myInit)
+            .then(r => r.json())
+            .then(body => {
+                let newGroups;
+                newGroups = groups.map(g => {
+                    if (body.data[g.NUM]) {
+                        g.hide = true;
+                        return g;
+                    } else {
+                        g.hide = false;
+                        return g;
+                    }
+                });
+                res(newGroups);
+            })
+            .catch(err => rej(err));
+        //сверяем какие группы скрыть
+    })
 }
 
 function downloadTTN(e) {
@@ -724,26 +756,39 @@ function createTable7(groups, root) {
     //в группах создаем вложеность
     return new Promise((res, rej) => {
         $('#modal-groups .modal-body').html(`<button class="btn btn-sm btn-outline-dark send-group">Загрузить</button>
+                                            <button class="btn btn-sm btn-outline-dark show-groups">Показать скрытые</button>
+                                            <button class="btn btn-sm btn-outline-dark show-length">Кол-во товаров в группах</button>
                                             <table class="table table-sm">
                                                 <thead>
                                                     <tr>
                                                         <th scope="col">Название</th>
                                                         <th scope="col">Выбрать</th>
+                                                        <th scope="col">Скрыть</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody></tbody>
                                             </table>
-                                            <button class="btn btn-sm btn-outline-dark send-group">Загрузить</button>`);
+                                            <button class="btn btn-sm btn-outline-dark send-group">Загрузить</button>
+                                            <button class="btn btn-sm btn-outline-dark show-groups">Показать скрытые</button>
+                                            <button class="btn btn-sm btn-outline-dark show-length">Кол-во товаров в группах</button>`);
         const tableBody = $('#modal-groups tbody');
         const icon = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-check" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.236.236 0 0 1 .02-.022z"/>
-                  </svg>`;
+            <path fill-rule="evenodd" d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.236.236 0 0 1 .02-.022z"/>
+            </svg>`;
+        const iconHide = `<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" class="bi bi-eye-slash" viewBox="0 0 16 16">
+            <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
+            <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
+            <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+            </svg>`;
         groups.forEach(g => {
             //если в группе родитель рут, добавляем в таблицу
-            const elem = `<tr id="group-${g.NUM}" class="${(!g.LEVEL)?'':' hidden'}" data-level="${g.LEVEL}">
-                                <td class="group-name" style="padding-left: ${g.LEVEL}rem">${g.NAME}<span class="open-group open-g">(+)</span></td>
+            const elem = `<tr id="group-${g.NUM}" class="${(!g.LEVEL)?'':' hidden'} ${g.hide?'hide':''}" data-level="${g.LEVEL}" data-group="${g.NUM}">
+                                <td class="group-name" style="padding-left: ${g.LEVEL}rem">${g.NAME}<span class="open-group open-g" onclick="openGroup(this)">(+)</span></td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-dark check-group" data-group="${g.NUM}">${icon}</button>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-dark ${g.hide?'show-group':'hide-group'}" data-group="${g.NUM}">${iconHide}</button>
                                 </td>
                             </tr>`;
             if (g.GRUPA === root) {
@@ -754,24 +799,12 @@ function createTable7(groups, root) {
                 parent.after(elem);
             }
         });
-        //открыть закрыть группы
-        $('.open-group').on('click', (e) => {
-            //берем родителя и проверяем кто следующий
-            const parent = e.target.parentElement.parentElement;
-            if ($(e.target).hasClass('open-g')) {
-                $(e.target).removeClass('open-g').addClass('close-g').text('(-)');
-                unHidden(parent);
-            } else if ($(e.target).hasClass('close-g')) {
-                $(e.target).removeClass('close-g').addClass('open-g').text('(+)');
-                addHidden(parent, parent.dataset.level)
-            } else console.error('Этот кейс не должен сработать');
-        })
         //выбрать группу
         $('.check-group').on('click', (e) => {
             if ($(e.currentTarget).hasClass('active')) {
                 $(e.currentTarget).removeClass('active');
             } else $(e.currentTarget).addClass('active');
-        })
+        });
         $('.send-group').on('click', (e) => {
             const result = [];
             //собираем все кнопки
@@ -779,19 +812,75 @@ function createTable7(groups, root) {
             btns.forEach(b => result.push(b.dataset.group));
             res(result);
         });
-        function unHidden(parent) {
-            if (parent.nextSibling && $(parent.nextSibling).hasClass('hidden')) {
-                $(parent.nextSibling).removeClass('hidden');
-                unHidden(parent.nextSibling);
+        //скрыть группу
+        $('.hide-group').on('click', (e) => {
+            //отправляем на сохранение группу
+            const num = e.currentTarget.dataset.group;
+            fetch('/config/save?num=' + num)
+                .then(r => r.json())
+                .then(d => {
+                    if (d.data) {
+                        //скрываем группу
+                        $('#group-' + num).addClass('hide');
+                        $(e.currentTarget)
+                            .removeClass('hide-group')
+                            .addClass('show-group');
+                    } else console.log(d)
+                })
+                .catch(err => console.log(err))
+        })
+        //показать скрытые группы
+        $('.show-groups').on('click', (e) => {
+            const hideGroups = $('.hide');
+            for (const val of hideGroups) {
+                $(val).removeClass('hide');
+                $(val).find('.show-group').removeClass('btn-outline-dark').addClass('btn-outline-light');
             }
-        }
-        function addHidden(parent, lvl) {
-            if (parent.nextSibling && (parent.nextSibling.dataset.level > lvl)) {
-                $(parent.nextSibling).addClass('hidden');
-                addHidden(parent.nextSibling, lvl);
-            }
-        }
+        })
+        //показать группу
+        $('.show-group').on('click', (e) => {
+            const num = e.currentTarget.dataset.group;
+
+            fetch('/config/delete?num=' + num)
+                .then(r => r.json())
+                .then(d => {
+                    if (d.data) {
+                        //скрываем группу
+                        $(e.currentTarget).removeClass('btn-outline-light').addClass('btn-outline-dark');
+                    } else console.log(d)
+                })
+                .catch(err => console.log(err))
+        })
+        //кол-во товаров в группах
+        $('.show-length').on('click', (e) => {
+            const groups = $('#modal-groups tbody tr');
+            getLengthTip(groups);
+        })
     })
+}
+//открыть закрыть группы
+function openGroup(e) {
+    //берем родителя и проверяем кто следующий
+    const parent = e.parentElement.parentElement;
+    if ($(e).hasClass('open-g')) {
+        $(e).removeClass('open-g').addClass('close-g').text('(-)');
+        unHidden(parent);
+    } else if ($(e).hasClass('close-g')) {
+        $(e).removeClass('close-g').addClass('open-g').text('(+)');
+        addHidden(parent, parent.dataset.level)
+    } else console.error('Этот кейс не должен сработать');
+    function unHidden(parent) {
+        if (parent.nextSibling && $(parent.nextSibling).hasClass('hidden')) {
+            $(parent.nextSibling).removeClass('hidden');
+            unHidden(parent.nextSibling);
+        }
+    }
+    function addHidden(parent, lvl) {
+        if (parent.nextSibling && (parent.nextSibling.dataset.level > lvl)) {
+            $(parent.nextSibling).addClass('hidden');
+            addHidden(parent.nextSibling, lvl);
+        }
+    }
 }
 //таблица групп
 function createTable8(group, root) {
@@ -856,6 +945,21 @@ function createTable8(group, root) {
     });
 }
 
+//узнать кол-во товаров
+function getLengthTip(groups) {
+    let i = 0;
+    start();
+    function start() {
+        if (i === groups.length) return;
+        const data = {opt: option, sql: `SELECT COUNT(*) FROM TOVAR_NAME WHERE TIP=${groups[i].dataset.group} AND (DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)`};
+        getData(data, (err, count) => {
+            const name = $(groups[i]).find('.group-name');
+            name[0].innerHTML += `(${count.data[0].COUNT})`;
+            i++;
+            start();
+        })
+    }
+}
 function progress(status, title, total, step) {
     if (status) {
         $('.progress').removeClass('hidden');
@@ -1490,7 +1594,7 @@ $('#customSwitch1').change((e) => {
             console.log(err, info);
         });
     }
-})
+});
 $('#modal-select-orders').on('hidden.bs.modal', (e) => {
     progress(false);
-})
+});

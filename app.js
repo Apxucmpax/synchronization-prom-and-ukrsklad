@@ -8,6 +8,7 @@ const indexRouter = require('./routes/index');
 const licenceRouter = require('./routes/licence');
 const sqlRouter = require('./routes/sql');
 const csvRouter = require('./routes/csv');
+const cfgRouter = require('./routes/config');
 
 var app = express();
 
@@ -16,7 +17,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 app.use(logger('dev'));
-app.use(express.json({limit: '50mb'}));
+app.use(express.json({limit: '100mb'}));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -25,6 +26,7 @@ app.use('/', indexRouter);
 app.use('/licence', licenceRouter);
 app.use('/sql', sqlRouter);
 app.use('/csv', csvRouter);
+app.use('/config', cfgRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

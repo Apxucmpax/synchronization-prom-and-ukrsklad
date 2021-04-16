@@ -32,6 +32,10 @@ footer {
   display: none;
 }
 
+.hide {
+  display: none;
+}
+
 .mar {
   margin-top: 6px;
   margin-left: 20px;
