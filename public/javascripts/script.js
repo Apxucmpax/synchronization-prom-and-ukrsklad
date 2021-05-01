@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.14.0';
+const version = '2.15.0';
 
 socket
     .on('connect', () => {
@@ -149,7 +149,35 @@ socket
                     cb(null, 'Ok');
                 }
             })
+    })
+    .on('reloadOrder', (idOrder, idShop) => {
+        console.log('deleteOrder', idOrder, idShop);
+        deleteOrder(idOrder)
+            .then(d => {
+                console.log(null, d);
+                //удаляем заказ с бд
+                socket.emit('removeOrder', 'order', idOrder, (err, info) => {
+                    if (info.ok) {
+                        //отправляем на запись заказ
+                        socket.emit('modules', 'downloadOrder', idOrder, idShop, (err, info) => {
+                            console.log(err, info);
+                            showAlert(`Загруженно накладных: ${info.length} шт.`);
+                        })
+                    }
+                })
+            })
+            .catch(err => {
+                console.log(err, null);
+                if (err['status'] && (err['status'] === 'not found')) {
+                    //отправляем на запись заказ
+                    socket.emit('modules', 'downloadOrder', idOrder, idShop, (err, info) => {
+                        console.log(err, info);
+                        showAlert(`Загруженно накладных: ${info.length} шт.`);
+                    })
+                }
+            })
     });
+
 function saveCsv(file, name, type) {
     return new Promise((res, rej) => {
         fetch('/csv', {
@@ -329,7 +357,7 @@ function onChangePrice(group, e) {
                             sortGroup(groups.data, 0)
                                 .then(d => hideGroups(d))//проверяем какие группы надо скрыть
                                 .then(d => createTable7(d, 0))
-                                .then(nums => {
+                                .then(d => {
                                     //закрываем окно групп
                                     $('#modal-groups').modal('hide');
                                     return fetch('/sql/data', {
@@ -337,7 +365,7 @@ function onChangePrice(group, e) {
                                         headers: {
                                             'Content-Type': 'application/json;charset=utf-8'
                                         },
-                                        body: JSON.stringify({opt: option, data: nums, fields: fields, watch: false, filename: 'price'})
+                                        body: JSON.stringify({opt: option, data: d, fields: fields, watch: false, filename: 'price'})
                                     });
                                 })//скачиваем полученную позицию(n.currentTarget.dataset.group)
                                 .then(res => res.json())
@@ -540,7 +568,7 @@ function goUp() {
 }
 
 function onTrash(id, orderId) {
-    socket.emit('removeOrder', id, (err, info) => {
+    socket.emit('removeOrder','id', id, (err, info) => {
         if (err) modalAlert(err);
         if (info.ok) {
             //удаляем запись с УКРсклад
@@ -562,7 +590,7 @@ function onTrash(id, orderId) {
                     }
                 })
                 .catch(err => {
-                    console.error({err: err, info: 'onTrash'});
+                    console.log({err: err, info: 'onTrash'});
                     showAlert(err);
                 });
         }
@@ -575,7 +603,7 @@ function deleteOrder(id) {
         getData({opt: option, sql: sql}, (err, info) => {
             if (err) rej(err);
             if (!info.data.length) {
-                rej(`Заказ с номером документа PROM-${id} не найден`);
+                rej({status: 'not found', text: `Заказ с номером документа PROM-${id} не найден`});
             } else {
                 const PID = info.data[0].NUM;
                 console.log(PID);
@@ -758,6 +786,11 @@ function createTable7(groups, root) {
         $('#modal-groups .modal-body').html(`<button class="btn btn-sm btn-outline-dark send-group">Загрузить</button>
                                             <button class="btn btn-sm btn-outline-dark show-groups">Показать скрытые</button>
                                             <button class="btn btn-sm btn-outline-dark show-length">Кол-во товаров в группах</button>
+                                            <div class="btn-group">
+                                                <input class="apxu-search-world" type="text">
+                                                <button class="btn btn-sm btn-outline-dark send-world">Загрузить</button>
+                                                <p class="search-count">0</p>
+                                            </div>
                                             <table class="table table-sm">
                                                 <thead>
                                                     <tr>
@@ -806,10 +839,10 @@ function createTable7(groups, root) {
             } else $(e.currentTarget).addClass('active');
         });
         $('.send-group').on('click', (e) => {
-            const result = [];
+            const result = {type: 'group', value: []};
             //собираем все кнопки
             const btns = $('.check-group.active').toArray();
-            btns.forEach(b => result.push(b.dataset.group));
+            btns.forEach(b => result.value.push(b.dataset.group));
             res(result);
         });
         //скрыть группу
@@ -855,6 +888,19 @@ function createTable7(groups, root) {
         $('.show-length').on('click', (e) => {
             const groups = $('#modal-groups tbody tr');
             getLengthTip(groups);
+        })
+        //событие на ввод текста
+        $('.apxu-search-world').on('input', (e) => {
+            console.log('input', e.target.value);
+            const data = {opt: option, sql: `SELECT COUNT(*) FROM TOVAR_NAME WHERE NAME LIKE '%${e.target.value}%' AND (DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)`};
+            getData(data, (err, res) => {
+                console.log('count', res);
+                $('.search-count').text(res.data[0].COUNT);
+            })
+        })
+        //загрузить прайс по запросу
+        $('.send-world').on('click', (e) => {
+            res({type: 'keyWord', value: $('.apxu-search-world').val()})
         })
     })
 }
