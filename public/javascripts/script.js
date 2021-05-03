@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.15.0';
+const version = '2.15.1';
 
 socket
     .on('connect', () => {
@@ -461,7 +461,8 @@ function openTTNWindow() {
 //получить две даты
 function getTwoDate() {
     const date = dateNow.toJSON().slice(0,10);
-    return `${date} ${date}`;
+    const yesterday = new Date(dateNow - 1000*60*60*24).toJSON().slice(0,10);
+    return `${yesterday} ${date}`;
 }
 
 function openPrice() {
