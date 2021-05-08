@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.15.1';
+const version = '2.16.0';
 
 socket
     .on('connect', () => {
@@ -345,7 +345,7 @@ function onChangePrice(group, e) {
         .then((res) => {
             if (res) {
                 //get additional field
-                socket.emit('getAdditionalField', (fields) => {
+                socket.emit('getAdditionalField', 'array', (fields) => {
                     if (group) {
                         //открываем окно выбора групп
                         $('#modal-groups').modal('show');
@@ -1323,10 +1323,13 @@ function calib() {
         }
         console.log(result);
         //поиск удаленных позиций
-        getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL'}, (err, zal) => {
+        //SKLAD_ID 1=товар в наличии, -20=производство, -1=нет на балансе, -10=резерв нет на балансе, 0=нет на балансе
+        getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL WHERE SKLAD_ID IN (1, -20)'}, (err, zal) => {
             const zalObj = {};
+            console.log(zal);
             if (zal.data) {
                 zal.data.forEach(z => zalObj[z.TOVAR_ID] = z.TOVAR_ID);//tovar[1,2,3,4,5] zal[2,3]
+
                 const result2 = tovar.data.filter(t => {
                     if (!zalObj[t.NUM]) return t;
                 });
@@ -1335,6 +1338,18 @@ function calib() {
                 //данных нет, база пуста
                 modalAlert('База пустая');
             }
+            //проверить сколько позиций с статусом DELETE и Prom-ID
+            //получить имя поля для Prom-ID
+            socket.emit('getAdditionalField', 'object', (fields) => {
+                //console.log(fields);
+                if (fields.promId) {
+                    getData({opt: option, sql: `SELECT NUM, NAME, ${fields.promId} FROM TOVAR_NAME WHERE (DOPOLN4 = 'DELETED' AND NOT(${fields.promId} IS NULL))`}, (err, tovar) => {
+                        console.log('Удаленных товаров с Пром ИД', tovar);
+                    })
+                } else {
+                    console.log('Поле для сохранения Prom ID отсутствует');
+                }
+            });
         })
     })
 }
@@ -1342,6 +1357,10 @@ function calib() {
 function calibAuto() {
     $('#modal-settings').modal('hide');
     const result = [];
+    let result2;
+    let result3;
+    let promId;
+    let i = 0;
     const data = {opt: option, sql: `SELECT NUM, NAME, DOPOLN4 FROM TOVAR_NAME WHERE (DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)`};
     getData(data, (err, res) => {
         console.log(res);
@@ -1357,9 +1376,8 @@ function calibAuto() {
         }
         console.log(result);
         //поиск удаленных позиций
-        getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL'}, (err, zal) => {
+        getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL WHERE SKLAD_ID IN (1, -20)'}, (err, zal) => {
             const zalObj = {};
-            let result2;
             if (zal.data) {
                 zal.data.forEach(z => zalObj[z.TOVAR_ID] = z.TOVAR_ID);//tovar[1,2,3,4,5] zal[2,3]
                 result2 = res.data.filter(t => {
@@ -1370,15 +1388,33 @@ function calibAuto() {
                 //данных нет, база пуста
                 modalAlert('База пустая');
             }
+            //проверить сколько позиций с статусом DELETE и Prom-ID
+            //получить имя поля для Prom-ID
+            socket.emit('getAdditionalField', 'object', (fields) => {
+                //console.log(fields);
+                promId = fields.promId;
+                if (promId) {
+                    getData({opt: option, sql: `SELECT NUM, NAME, ${promId} FROM TOVAR_NAME WHERE (DOPOLN4 = 'DELETED' AND NOT(${promId} IS NULL))`}, (err, tovar) => {
+                        console.log('Удаленных товаров с Пром ИД', tovar);
+                        if (tovar.data) {
+                            result3 = tovar.data;
+                            start();
+                        } else {
+                            //данных нет, база пуста
+                            modalAlert('База пустая');
+                        }
+                    })
+                } else {
+                    console.log('Поле для сохранения Prom ID отсутствует');
+                }
+            });
             //update prods
-            let i = 0;
-            start();
             function start() {
                 if (i === result.length) {
                     progress(false);
                     showAlert(`Исправление окончено, изменено ${result.length} названий`);
                     //запускаем вторую функцию
-                    let i = 0;
+                    i = 0;
                     start2();
                 } else {
                     progress(true, 'Исправляю неподдерживаемые символы', result.length, i);
@@ -1396,6 +1432,9 @@ function calibAuto() {
                     progress(false);
                     showAlert(`Исправление окончено, изменено ${result2.length} позиций`);
                     //запускаем вторую функцию
+                    i = 0;
+                    if (promId) start3();
+                    else console.log('Поле для записи Prom ID отсутствует');
                 } else {
                     progress(true, 'Добавление в удаленные позиции статус DELETED', result2.length, i);
                     const sql = `UPDATE TOVAR_NAME SET DOPOLN4 = 'DELETED' WHERE NUM = ${result2[i].NUM}`;
@@ -1403,6 +1442,21 @@ function calibAuto() {
                         .then(() => {
                             i++;
                             start2();
+                        })
+                        .catch(err => console.log(err));
+                }
+            }
+            function start3() {
+                if (i === result3.length) {
+                    progress(false);
+                    showAlert(`Исправление окончено, изменено ${result3.length} позиций`);
+                } else {
+                    progress(true, 'Очистка поля PromID в удаленных позициях', result3.length, i);
+                    const sql = `UPDATE TOVAR_NAME SET ${promId} = NULL WHERE NUM = ${result3[i].NUM}`;
+                    insertBD(option, sql)
+                        .then(() => {
+                            i++;
+                            start3();
                         })
                         .catch(err => console.log(err));
                 }
