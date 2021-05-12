@@ -7,7 +7,7 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.16.0';
+const version = '2.17.0';
 
 socket
     .on('connect', () => {
@@ -1324,9 +1324,8 @@ function calib() {
         console.log(result);
         //поиск удаленных позиций
         //SKLAD_ID 1=товар в наличии, -20=производство, -1=нет на балансе, -10=резерв нет на балансе, 0=нет на балансе
-        getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL WHERE SKLAD_ID IN (1, -20)'}, (err, zal) => {
+        getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL WHERE NOT(SKLAD_ID = -10)'}, (err, zal) => {
             const zalObj = {};
-            console.log(zal);
             if (zal.data) {
                 zal.data.forEach(z => zalObj[z.TOVAR_ID] = z.TOVAR_ID);//tovar[1,2,3,4,5] zal[2,3]
 
@@ -1376,7 +1375,7 @@ function calibAuto() {
         }
         console.log(result);
         //поиск удаленных позиций
-        getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL WHERE SKLAD_ID IN (1, -20)'}, (err, zal) => {
+        getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL WHERE NOT(SKLAD_ID = -10)'}, (err, zal) => {
             const zalObj = {};
             if (zal.data) {
                 zal.data.forEach(z => zalObj[z.TOVAR_ID] = z.TOVAR_ID);//tovar[1,2,3,4,5] zal[2,3]
@@ -1632,6 +1631,12 @@ function test3() {
             })
             console.log(result);
         })
+}
+//очистить TOVAR_NAME от записи 'DELETED' в DOPOLN4
+function test4() {
+    const sql = `UPDATE TOVAR_NAME SET DOPOLN4 = NULL WHERE DOPOLN4 = 'DELETED' `;
+    insertBD(option, sql)
+        .then(r => console.log(r));
 }
 //установка свитча
 function stateSwitch(info){
