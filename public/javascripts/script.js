@@ -7,7 +7,9 @@ let syncExport = false;
 let selectExport;
 let online = false;
 let sentStatus = false;
-const version = '2.17.0';
+// flag open modal groups
+let isOpenModalGroups = false;
+const version = '2.17.1';
 
 socket
     .on('connect', () => {
@@ -997,11 +999,16 @@ function getLengthTip(groups) {
     let i = 0;
     start();
     function start() {
+        if (!isOpenModalGroups) return;
         if (i === groups.length) return;
-        const data = {opt: option, sql: `SELECT COUNT(*) FROM TOVAR_NAME WHERE TIP=${groups[i].dataset.group} AND (DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)`};
+        const sql = `SELECT COUNT(*) FROM TOVAR_NAME WHERE TIP=${groups[i].dataset.group} AND (DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL)`;
+        const data = {opt: option, sql };
         getData(data, (err, count) => {
-            const name = $(groups[i]).find('.group-name');
-            name[0].innerHTML += `(${count.data[0].COUNT})`;
+            if (!count.data) console.log(`getLengthTip => error, count, sql: `, err, count, sql);
+            else {
+                const name = $(groups[i]).find('.group-name');
+                name[0].innerHTML += `(${count.data[0].COUNT})`;
+            }
             i++;
             start();
         })
@@ -1703,4 +1710,10 @@ $('#customSwitch1').change((e) => {
 });
 $('#modal-select-orders').on('hidden.bs.modal', (e) => {
     progress(false);
+});
+$('#modal-groups').on('shown.bs.modal', (e) => {
+    isOpenModalGroups = true;
+});
+$('#modal-groups').on('hidden.bs.modal', (e) => {
+    isOpenModalGroups = false;
 });
