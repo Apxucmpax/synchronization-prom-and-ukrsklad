@@ -9,7 +9,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.17.1';
+const version = '2.17.2';
 
 socket
     .on('connect', () => {
@@ -642,10 +642,10 @@ function changeOnlineStatus(type) {
     }
 }
 
-function modalAlert(err) {
+function modalAlert(messageError) {
     const modalError = $('#modal-error');
     modalError.modal('show');
-    $('#modal-error p.apxu-alert').html(err);
+    $('#modal-error p.apxu-alert').html(messageError);
     modalError.on('hide.bs.modal', () => {
         $('#modal-error p.apxu-alert').html('');
         modalError.off('hide.bs.modal');
@@ -755,7 +755,6 @@ function createTable4(info) {
                 <button class="btn btn-outline-dark" onclick="removeSync(this, 'ukr')">${trash}</button>
             </td>
         </tr>`;
-    
 }
 function createTable5(tips) {
     let resault = '';
@@ -1603,7 +1602,10 @@ function checkDouble() {
     const sql = `SELECT NUM, DOPOLN5 FROM TOVAR_NAME WHERE DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL AND NOT(DOPOLN5 IS NULL)`;
     selectBD(option, sql)
         .then(r => {
-            console.log(r.data.length);
+            if (!r.data || !r.data.length) {
+                return modalAlert('ВНИМАНИЕ: Приложение подключено к пустой базе');
+            }
+            console.log('checkDouble', r);
             const obj = {};
             r.data.forEach(d => {
                 if (d.DOPOLN5) {
