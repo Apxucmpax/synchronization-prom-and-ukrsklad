@@ -9,7 +9,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.18.0';
+const version = '2.19.0';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -471,7 +471,10 @@ function getNestingGroupsAsync(paramArrayGroupsId) {
  */
 function addNestingGroupsAsync(paramObj) {
   return Promise.resolve(getNestingGroupsAsync(paramObj.value))
-    .then(value => paramObj.value = value)
+    .then(value => {
+      paramObj.value = value
+      return paramObj
+    })
 }
 
 function hideGroups(groups, configGroups) {
