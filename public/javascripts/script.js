@@ -9,7 +9,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.19.0';
+const version = '2.20.0';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -890,7 +890,7 @@ function createTable7(groups, root) {
     groups.forEach(g => {
       //если в группе родитель рут, добавляем в таблицу
       const elem = `<tr id="group-${g.NUM}" class="${(!g.LEVEL) ? '' : ' hidden'} ${g.hide ? 'hide' : ''}" data-level="${g.LEVEL}" data-group="${g.NUM}">
-                                <td class="group-name" style="padding-left: ${g.LEVEL}rem">${g.NAME}<span class="open-group open-g" onclick="openGroup(this)">(+)</span></td>
+                                <td class="group-name" style="padding-left: ${g.LEVEL}rem">${g.NAME}<span class="open-group open-g" onclick="openGroup(this)">(+)</span><span class="show-one-length pointer"> Кол-во товаров </span></td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-dark check-group" data-group="${g.NUM}">${icon}</button>
                                 </td>
@@ -967,6 +967,10 @@ function createTable7(groups, root) {
     $('.show-length').on('click', (e) => {
       const groups = $('#modal-groups tbody tr');
       getLengthTip(groups);
+    })
+    //кол-во товаров в одной группе
+    $('.show-one-length').on('click', (e) => {
+      getLengthTip($(`#group-${e.target.parentElement.parentElement.dataset.group}`));
     })
     //событие на ввод текста
     $('.apxu-search-world').on('input', (e) => {
