@@ -9,7 +9,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.20.0';
+const version = '2.20.1';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -344,12 +344,20 @@ function onExport(select, e) {
   })
 }
 
-function onExportNew() {
-  // $('#modal-export').modal('hide');
-  // socket.emit('test', Date.now(), (err, res) => {
-  //     console.log(err, res)
-  // })
-  console.log('В разработке');
+/** export the price product to prom.ua
+ * @name ssOnExport
+ *
+ * @param {boolean} select - select groups for export
+ * @param {Event} e - event click
+ *
+ * */
+function ssOnExport(select, e) {
+  $(e).attr('disabled', true);
+  // syncExport = true;
+  // selectExport = select;
+  socket.emit('modules', 'exportSS', Date.now(), select, (err, res) => {
+    console.log(` ssOnExport: `, err, res);
+  })
 }
 
 function onDateImport(setting) {
