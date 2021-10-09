@@ -9,7 +9,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.20.1';
+const version = '2.20.2';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -181,6 +181,8 @@ socket
             console.log(err, info);
             showAlert(`Загруженно накладных: ${info.length} шт.`);
           })
+        } else {
+          showAlert(err);
         }
       })
   });
@@ -643,43 +645,46 @@ function goUp() {
 }
 
 function onTrash(id, orderId) {
-  socket.emit('removeOrder', 'id', id, (err, info) => {
-    if (err) modalAlert(err);
-    if (info.ok) {
-      //удаляем запись с УКРсклад
-      //по id находим запись в Укрсклад SCHET NUM
-      deleteOrder(orderId)
-        .then(d => {
+  //удаляем запись с УКРсклад
+  //по id находим запись в Укрсклад SCHET NUM
+  deleteOrder(orderId)
+    .then(d => {
+      socket.emit('removeOrder', 'id', id, (err, info) => {
+        if (err) modalAlert(err);
           //удаляем эту строку
-          $(`tbody tr[data-id=${id}]`).remove();
-          //проверяем если элементов больше нет
-          if (!$('tbody tr').length) {
-            //отправляем запрос на скачку нового листа заказов
-            const modalOrders = $('#modal-orders');
-            const page = Number(modalOrders[0].dataset.page);
-            getOrders(page, (err, orders) => {
-              if (err) return modalAlert(err);
-              modalOrders.find('.modal-title').html(`Заказы: лист ${page + 1}`);
-              modalOrders.find('tbody').html(creatTable(orders));
-            });
-          }
-        })
-        .catch(err => {
-          console.log({err: err, info: 'onTrash'});
-          showAlert(err);
-        });
-    }
-  });
+        $(`tbody tr[data-id=${id}]`).remove();
+        //проверяем если элементов больше нет
+        if (!$('tbody tr').length) {
+          //отправляем запрос на скачку нового листа заказов
+          const modalOrders = $('#modal-orders');
+          const page = Number(modalOrders[0].dataset.page);
+          getOrders(page, (err, orders) => {
+            if (err) return modalAlert(err);
+            modalOrders.find('.modal-title').html(`Заказы: лист ${page + 1}`);
+            modalOrders.find('tbody').html(creatTable(orders));
+          });
+        }
+      })
+    })
+    .catch(err => {
+      console.log({err: err, info: 'onTrash'});
+      showAlert(JSON.stringify(err));
+    });
 }
 
 function deleteOrder(id) {
   return new Promise((res, rej) => {
-    const sql = `SELECT NUM FROM SCHET WHERE NU = 'PROM-${id}'`;
+    const sql = `SELECT NUM, IS_REZERV FROM SCHET WHERE NU = 'PROM-${id}'`;
     getData({opt: option, sql: sql}, (err, info) => {
       if (err) rej(err);
       if (!info.data.length) {
         rej({status: 'not found', text: `Заказ с номером документа PROM-${id} не найден`});
       } else {
+        console.log(' deleteOrder -> IS_REZERV: ', info.data[0].IS_REZERV);
+        if (info.data[0].IS_REZERV) {
+          modalAlert(`Невозможно удалить заказ 'PROM-${id}'. Oн в резерве. Для удаления снимите резерв.`);
+          return rej({err: `Невозможно удалить заказ 'PROM-${id}'. Oн в резерве. Для удаления снимите резерв.`, info: 'deleteOrder()'});
+        }
         const PID = info.data[0].NUM;
         console.log(PID);
         const sql = `DELETE FROM SCHET_ WHERE PID = ${PID}`;

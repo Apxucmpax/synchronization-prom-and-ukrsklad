@@ -144,3 +144,7 @@ footer {
   cursor: pointer;
   font-weight: bolder;
 }
+
+#modal-error {
+  z-index: 1060;
+}
