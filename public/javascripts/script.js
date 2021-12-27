@@ -1,4 +1,5 @@
 const _baseURL = ['https://syncprom1.herokuapp.com/', 'https://syncprom.herokuapp.com/', 'http://localhost:3001/'];
+let socket = null;
 const dateNow = new Date();
 let syncExport = false;
 let selectExport;
@@ -6,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.22.1';
+const version = '2.22.2';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -50,7 +51,7 @@ function testFetch(i, timeout) {
 testFetch(0, 1000);
 
 function start(url) {
-  const socket = io(url);
+  socket = io(url);
 
   socket
     .on('connect', () => {
