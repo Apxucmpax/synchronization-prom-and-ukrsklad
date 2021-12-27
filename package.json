@@ -1,6 +1,6 @@
 {
   "name": "synchronization_prom",
-  "version": "2.21.2",
+  "version": "2.22.3",
   "private": true,
   "scripts": {
     "start": "node ./bin/www"

@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.22.2';
+const version = '2.22.3';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -182,6 +182,11 @@ function start(url) {
     .on('xlsx', (data, msg, filename, type, cb) => {
       //show the window for choice, save or not
       const date = new Date();
+      if (autoSaveXlsx) {
+        saveXlsx(data, `${filename} ${date.toDateString()}`, type)
+              .then(r => cb(null, r))
+              .catch(err => cb(err, null));
+      } else 
       openInfoWindow(`${msg} (имя файла будет: ${filename} ${date.toDateString()})`)
         .then(res => {
           console.log(data);
