@@ -180,14 +180,15 @@ function start(url) {
       }
     })
     .on('xlsx', (data, msg, filename, type, cb) => {
+      console.log(" xlsx: ", );
       //show the window for choice, save or not
       const date = new Date();
-      if (autoSaveXlsx) {
-        saveXlsx(data, `${filename} ${date.toDateString()}`, type)
-              .then(r => cb(null, r))
-              .catch(err => cb(err, null));
-      } else 
-      openInfoWindow(`${msg} (имя файла будет: ${filename} ${date.toDateString()})`)
+      // if (false) {
+      //   saveXlsx(data, `${filename} ${date.toDateString()}`, type)
+      //         .then(r => cb(null, r))
+      //         .catch(err => cb(err, null));
+      // } else {
+        openInfoWindow(`${msg} (имя файла будет: ${filename} ${date.toDateString()})`)
         .then(res => {
           console.log(data);
           if (res) {
