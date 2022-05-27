@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.22.3';
+const version = '2.22.4';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -48,8 +48,8 @@ function testFetch(i, timeout) {
   
 }
 
-testFetch(0, 1000);
-
+//testFetch(0, 1000);
+start('https://syncprom1.herokuapp.com/api');
 function start(url) {
   socket = io(url);
 
@@ -306,7 +306,6 @@ function onImport(date, setting, e) {
     }
     $(e).attr('disabled', false);
     console.log(result);
-
   });
 }
 
@@ -1445,11 +1444,11 @@ function stopWatch() {
 }
 
 //вывод сообщения
-function showAlert(html) {
-  $('.alert').html(html).removeClass('hidden');
+function showAlert(html, type = 'info') {
+  $('.alert').html(html).removeClass('hidden').addClass(`alert-${type}`);
   console.log('alert', html);
   setTimeout(() => {
-    $('.alert').addClass('hidden')
+    $('.alert').addClass('hidden').removeClass(`alert-${type}`);
   }, 20000);
 }
 
@@ -1869,6 +1868,91 @@ function stateSwitch(info) {
   if (info) $('#customSwitch1').prop('checked', true);
 }
 
+//показать модалку для сборочной накладной
+function showModalCombineOrders() {
+  $('#modal-settings').modal('hide');
+  $('#modal-combine-orders').modal('show');
+}
+
+//создать накладную на основе выбранных заказов
+function createInvoiceByList() {
+  //получить список заказов
+  const value = $('#modal-combine-orders input[aria-describedby="button-order-list"]').val();
+  if (!value) return showAlert('Вы не ввели названия накладных');
+  const orders = value.split(',').map(v => v.trim());
+  //отправить данные на сервер
+  socket.emit('modules', 'createInvoice', orders, null, (err, res) => {
+    if (err) return showAlert(err);
+    console.log(" createInvoice: ", res);
+  });
+  //обьединить информацию о заказах в одну накладную
+  //сохранить накладную в бд
+}
+
+//показать модалку с выбором заказов для обьединения
+function showOrders() {
+  $('#modal-combine-orders').modal('hide');
+  const date = $('#modal-combine-orders input[aria-describedby="button-show-orders"]').val().split(' ');
+  if (!date) return showAlert('Вы не ввели датту', 'warning');
+  $('#modal-orders-list').modal('show');
+    socket.emit('modules', 'getOrders', date, null, (err, res) => {
+      if (err) return showAlert(err);
+      //валидация данных
+      if (!res.data || !res.data.length) {
+        $('#modal-orders-list').modal('hide');
+        return showAlert('Нет заказов на эту дату', 'warning');
+      }
+      //заполнить таблицу данными
+      const table = $('#modal-orders-list table tbody');
+      //создать строку таблицы
+      const createRow = (d, index) => {
+        return `<tr data-id="${d.NUM}">
+          <th>${index + 1}</th>
+          <td>${d.NU}</td>
+          <td>${d.CLIENT}</td>
+          <td>${d.CENA}</td>
+          <td>${new Date(d.DATE_DOK).toLocaleDateString('fr-ca')}</td>
+          <td>
+            <input type="checkbox" name="invoice" data-id="${d.NUM}">
+          </td>
+        </tr>`;
+      };
+      //заполнить таблицу
+      table.html(res.data.map((d, index) => createRow(d, index)).join(''));
+    });
+}
+
+//создать накладную
+function createInvoice() {
+  //получить список заказов
+  const inputs = $('#modal-orders-list table tbody input[name="invoice"]:checked');
+  if (!inputs.length) return showAlert('Вы не выбрали заказы', 'warning');
+  const orders = [];
+  for (let i = 0; i < inputs.length; i++) {
+    orders.push(+inputs[i].dataset.id);
+  }
+  //закрыть модалку
+  $('#modal-orders-list').modal('hide');
+  //вывести сообщение о загрузке
+  showAlert('Загрузка данных...', 'info');
+  //создаем имя накладной из даты и времени
+  const date = new Date();
+  const name = `SN-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+  //отправить данные на сервер
+  socket.emit('modules', 'createInvoiceByNum', { orders, name }, null, (err, res) => {
+    if (err) return showAlert(err, 'danger');
+    showAlert('Накладная создана', 'success');
+  });
+}
+
+//выделяем все заказы
+function checkAllOrders(e) {
+  const boxes = $('#modal-orders-list input[name="invoice"]');
+  for (let i = 0; i < boxes.length; i++) {
+    boxes[i].checked = !!e.checked;
+  }
+}
+
 $('#modal-import').on('hidden.bs.modal', (e) => {
   $(e.target).find('.apxu-import-alert').html('');
   $(e.target).find('input').val('');
@@ -1934,4 +2018,8 @@ $('#modal-groups').on('shown.bs.modal', (e) => {
 });
 $('#modal-groups').on('hidden.bs.modal', (e) => {
   isOpenModalGroups = false;
+});
+//при открытии модалки установить даты
+$('#modal-combine-orders').on('shown.bs.modal', (e) => {
+  $('#modal-combine-orders input[aria-describedby="button-show-orders"]').val(getTwoDate());
 });
