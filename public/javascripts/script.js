@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.22.4';
+const version = '2.22.5';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -45,7 +45,6 @@ function testFetch(i, timeout) {
       testFetch(index, timeout*2);
     }, timeout);
   }
-  
 }
 
 //testFetch(0, 1000);
@@ -108,7 +107,7 @@ function start(url) {
     .on('infoWindow', (msg, cb) => {
       //открываем окно с предложением сохранить товары
       openInfoWindow(msg)
-        .then((res) => cb(res));
+        .then((res) => cb(res.status));
     })
     .on('selectOrders', (orders, cb) => {
       //выводим заказы в таблицу
@@ -161,10 +160,10 @@ function start(url) {
         case 'random':
           //вызываем окно для ввода названия файл
           const date = new Date();
-          openInfoWindow(`${msg} (имя файла будет: ${name + date.toDateString()})`)
+          openInfoWindow(`${msg} (имя файла будет: ${name + date.toDateString()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()})`)
             .then(res => {
-              if (res) {
-                saveCsv(file, name + date.toDateString(), type)
+              if (res.status) {
+                saveCsv(file, `${name + date.toDateString()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`, type)
                   .then(data => {
                     console.log(data);
                     cb(null, data)
@@ -188,12 +187,12 @@ function start(url) {
       //         .then(r => cb(null, r))
       //         .catch(err => cb(err, null));
       // } else {
-        openInfoWindow(`${msg} (имя файла будет: ${filename} ${date.toDateString()})`)
+        openInfoWindow(`${msg} (имя файла будет "${filename} ${date.toDateString()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}" или введите свое имя)`, true)
         .then(res => {
           console.log(data);
-          if (res) {
-            //if save, send the data on save
-            saveXlsx(data, `${filename} ${date.toDateString()}`, type)
+          if (res.status) {
+            //if save, send the data on save and set the name of file time of creation
+            saveXlsx(data, `${res.value || filename} ${date.toDateString()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`, type)
               .then(r => cb(null, r))
               .catch(err => cb(err, null));
           } else {
@@ -422,7 +421,7 @@ function onChangePrice(group, e) {
   $(e).attr('disabled', true);
   openInfoWindow('Вы уверены что хотите создать новый файл price.xlsx? Все предыдущие изменения в этом файле будут утеряны.')
     .then((res) => {
-      if (res) {
+      if (res.status) {
         //get additional field
         socket.emit('getAdditionalField', 'array', (fields) => {
           if (group) {
@@ -1260,17 +1259,24 @@ function getDataPromise(url, option, sql, blob, data) {
 }
 
 //открываем информационное окно
-function openInfoWindow(info) {
+function openInfoWindow(info, showInput) {
   $('#modal-info').modal('show');
+  if (showInput) $('#input-info').removeClass('hidden');
   $('.apxu-info-alert').html(info);
   return new Promise((res, rej) => {
     $('.apxu-yes').on('click', () => {
-      res(true);
+      res({status: true, value: $('#input-info').val()});
       $('#modal-info').modal('hide');
+      $('#input-info').addClass('hidden').val('');
+      $('.apxu-yes').off('click');
+      $('.apxu-no').off('click');
     });
     $('.apxu-no').on('click', () => {
-      res(false);
+      res({status: false, value: null});
       $('#modal-info').modal('hide');
+      $('#input-info').addClass('hidden');
+      $('.apxu-no').off('click');
+      $('.apxu-yes').off('click');
     })
   })
 }
@@ -1420,7 +1426,7 @@ function status() {
             showAlert(data.info);
             if (data.request === 'Сохранять изменения в УкрСклад?') {
               openInfoWindow(data.request)
-                .then(bool => start(`saveFile=${bool}&removeRequest=true`))
+                .then(res => start(`saveFile=${res.status}&removeRequest=true`))
             } else if (data.status) {
               setTimeout(start, 1000);
             } else {
