@@ -154,7 +154,7 @@ router
     })
     .post('/xlsx', (req, res) => {
         const {data, filename, type} = req.body;
-        createXLSPrice((filename)?filename:'default', data, type)
+        createXLSPrice(filename ? filename : 'default', data, type)
             .then(arr => res.json({err: null, data: 'Сохранино'}))
             .catch(err => res.json({err: err, data: null}))
     })

@@ -160,10 +160,10 @@ function start(url) {
         case 'random':
           //вызываем окно для ввода названия файл
           const date = new Date();
-          openInfoWindow(`${msg} (имя файла будет: ${name + date.toDateString()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()})`)
+          openInfoWindow(`${msg} (имя файла будет "${name} ${date.toString().slice(4, 24).replace(/:/g, '-')}")`)
             .then(res => {
               if (res.status) {
-                saveCsv(file, `${name + date.toDateString()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`, type)
+                saveCsv(file, `${name} ${date.toString().slice(4, 24).replace(/:/g, '-')}`, type)
                   .then(data => {
                     console.log(data);
                     cb(null, data)
@@ -187,12 +187,12 @@ function start(url) {
       //         .then(r => cb(null, r))
       //         .catch(err => cb(err, null));
       // } else {
-        openInfoWindow(`${msg} (имя файла будет "${filename} ${date.toDateString()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}" или введите свое имя)`, true)
+        openInfoWindow(`${msg} (имя файла будет "${filename} ${date.toString().slice(4, 24).replace(/:/g, '-')}" или введите свое имя)`, true)
         .then(res => {
           console.log(data);
           if (res.status) {
             //if save, send the data on save and set the name of file time of creation
-            saveXlsx(data, `${res.value || filename} ${date.toDateString()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`, type)
+            saveXlsx(data, `${res.value || `${filename} ${date.toString().slice(4, 24).replace(/:/g, '-')}`}`, type)
               .then(r => cb(null, r))
               .catch(err => cb(err, null));
           } else {
@@ -356,14 +356,13 @@ function switchActive(elem) {
 
 //save data in .xlsx file
 function saveXlsx(data, filename, type) {
-  console.log(data);
   return new Promise((res, rej) => {
     fetch('/sql/xlsx', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json;charset=utf-8'
       },
-      body: JSON.stringify({data: data, filename: filename, type: type})
+      body: JSON.stringify({data, filename, type})
     })
       .then(res => res.json())
       .then(body => res(body))
