@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.22.5';
+const version = '2.22.7';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -1524,7 +1524,7 @@ function calib() {
     console.log(result);
     //поиск удаленных позиций
     //SKLAD_ID 1=товар в наличии, -20=производство, -1=нет на балансе, -10=резерв нет на балансе, 0=нет на балансе
-    getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL WHERE NOT(SKLAD_ID = -10)'}, (err, zal) => {
+    getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL WHERE NOT(SKLAD_ID IN (-10, -20))'}, (err, zal) => {
       const zalObj = {};
       if (zal.data) {
         zal.data.forEach(z => zalObj[z.TOVAR_ID] = z.TOVAR_ID);//tovar[1,2,3,4,5] zal[2,3]
@@ -1582,7 +1582,7 @@ function calibAuto() {
     }
     console.log(result);
     //поиск удаленных позиций
-    getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL WHERE NOT(SKLAD_ID = -10)'}, (err, zal) => {
+    getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL WHERE NOT(SKLAD_ID IN (-10, -20))'}, (err, zal) => {
       const zalObj = {};
       if (zal.data) {
         zal.data.forEach(z => zalObj[z.TOVAR_ID] = z.TOVAR_ID);//tovar[1,2,3,4,5] zal[2,3]
