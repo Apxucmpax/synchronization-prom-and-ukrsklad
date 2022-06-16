@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.22.7';
+const version = '2.23.0';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -48,9 +48,9 @@ function testFetch(i, timeout) {
 }
 
 //testFetch(0, 1000);
-start('https://syncprom1.herokuapp.com/api');
+start('https://syncprom1.herokuapp.com');
 function start(url) {
-  socket = io(url);
+  socket = io(`${url}/api`);
 
   socket
     .on('connect', () => {
@@ -396,6 +396,8 @@ function onExport(select, e) {
  *
  * */
 function ssOnExport(select, e) {
+  //close modal-settings
+  $('#modal-settings').modal('hide');
   $(e).attr('disabled', true);
   // syncExport = true;
   // selectExport = select;
@@ -462,7 +464,8 @@ function onChangePrice(group, e) {
                 .catch(err => console.log(err))
               //выводим группы в окно
             })
-          } else {
+          }
+          else {
             fetch('/sql/data', {
               method: 'POST',
               headers: {
