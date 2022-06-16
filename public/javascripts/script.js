@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.23.0';
+const version = '2.23.2';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -945,7 +945,7 @@ function createTable7(groups, root) {
             <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
             <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
             </svg>`;
-    groups.sort(sortByNAME).forEach(g => {
+    groups.forEach(g => {
       //если в группе родитель рут, добавляем в таблицу
       const elem = `<tr id="group-${g.NUM}" class="${(!g.LEVEL) ? '' : ' hidden'} ${g.hide ? 'hide' : ''}" data-level="${g.LEVEL}" data-group="${g.NUM}">
                                 <td class="group-name" style="padding-left: ${g.LEVEL}rem">${g.NAME}<span class="open-group open-g" onclick="openGroup(this)">(+)</span><span class="show-one-length pointer"> Кол-во товаров </span></td>
@@ -1092,7 +1092,7 @@ function createTable8(group, root) {
     const icon = `<svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-check" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                     <path fill-rule="evenodd" d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.236.236 0 0 1 .02-.022z"/>
                   </svg>`;
-    group.groups.sort(sortByName).forEach(g => {
+    group.groups.forEach(g => {
       const lvl = group.ids[g.id].level;
       //если в группе родитель рут, добавляем в таблицу
       const elem = `<tr id="group-${g.id}" class="${(!lvl) ? '' : ' hidden'}" data-level="${lvl}">
