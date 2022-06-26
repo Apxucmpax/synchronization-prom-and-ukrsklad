@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.23.3';
+const version = '2.23.4';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -1973,7 +1973,7 @@ function showOrders() {
           <td>${d.CENA}</td>
           <td>${new Date(d.DATE_DOK).toLocaleDateString('fr-ca')}</td>
           <td>
-            <input type="checkbox" name="invoice" data-id="${d.NUM}">
+            <input type="checkbox" name="invoice" data-id="${d.NUM}" data-nu="${d.NU}">
           </td>
         </tr>`;
       };
@@ -1989,7 +1989,7 @@ function createInvoice() {
   if (!inputs.length) return showAlert('Вы не выбрали заказы', 'warning');
   const orders = [];
   for (let i = 0; i < inputs.length; i++) {
-    orders.push(+inputs[i].dataset.id);
+    orders.push({ id: +inputs[i].dataset.id, nu: inputs[i].dataset.nu });
   }
   //закрыть модалку
   $('#modal-orders-list').modal('hide');
