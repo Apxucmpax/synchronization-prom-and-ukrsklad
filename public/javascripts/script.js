@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.23.4';
+const version = '2.24.0';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -1958,7 +1958,7 @@ function showOrders() {
     socket.emit('modules', 'getOrders', date, null, (err, res) => {
       if (err) return showAlert(err);
       //валидация данных
-      if (!res.data || !res.data.length) {
+      if (!Array.isArray(res) || !res.length) {
         $('#modal-orders-list').modal('hide');
         return showAlert('Нет заказов на эту дату', 'warning');
       }
@@ -1973,12 +1973,12 @@ function showOrders() {
           <td>${d.CENA}</td>
           <td>${new Date(d.DATE_DOK).toLocaleDateString('fr-ca')}</td>
           <td>
-            <input type="checkbox" name="invoice" data-id="${d.NUM}" data-nu="${d.NU}">
+            <input type="checkbox" name="invoice" data-id="${d.NUM}" data-nu="${d.NU}" data-count="${d.COUNT}">
           </td>
         </tr>`;
       };
       //заполнить таблицу
-      table.html(res.data.map((d, index) => createRow(d, index)).join(''));
+      table.html(res.map((d, index) => createRow(d, index)).join(''));
     });
 }
 
@@ -1989,7 +1989,7 @@ function createInvoice() {
   if (!inputs.length) return showAlert('Вы не выбрали заказы', 'warning');
   const orders = [];
   for (let i = 0; i < inputs.length; i++) {
-    orders.push({ id: +inputs[i].dataset.id, nu: inputs[i].dataset.nu });
+    orders.push({ id: +inputs[i].dataset.id, nu: inputs[i].dataset.nu, count: inputs[i].dataset.count });
   }
   //закрыть модалку
   $('#modal-orders-list').modal('hide');
