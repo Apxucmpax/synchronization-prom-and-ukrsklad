@@ -228,7 +228,14 @@ function start(url) {
             showAlert(err);
           }
         })
-    });
+    })
+    .on('reloadOrders', reloadOrders)
+    .on('createInvoice', (orders) => {
+      socket.emit('modules', 'createInvoiceByOrderId', orders, null, (err, info) => {
+        if (err) return socket.emit('dwn error', err);
+        socket.emit('dwn complete', 'Общая накладная создана');
+      });
+    })
 };
 
 function saveCsv(file, name, type) {
@@ -716,22 +723,165 @@ function onTrash(id, orderId) {
       showAlert(JSON.stringify(err));
     });
 }
+async function reloadOrders(idOrders, idShop) {
+  try {
+    socket.emit('dwn progress', 'Поиск для удаление заказов с УкрСклад...');
+    const schets = await getSchetByOrderIds(idOrders);
+    //check schets have IS_RESERV
+    const schetsWithReserv = schets.filter(({ IS_REZERV }) => !!IS_REZERV);
+    if (schetsWithReserv.length) {
+      return socket.emit('dwn error', schetsWithReserv.map(s => `Заказ зарезервирован: ${s.NU.slice(5)}`));
+    }
+    //remove orders from UkrSklad
+    socket.emit('dwn progress', 'Удаление заказов с УкрСклад...');
+    if (schets.length) {
+      const success = await removeSchetsUkrSklad(schets.map(({ NUM }) => NUM));
+      if (!success) return socket.emit('dwn error', 'Ошибка удаления заказов с УкрСклад');
+    }
+    //remove orders from DB
+    socket.emit('dwn progress', 'Удаление заказов с Базы Данных...');
+    await Promise.all(idOrders.map(id => removeOrderDB(id)));
+    //create orders in UkrSklad
+    socket.emit('dwn progress', 'Создание заказов в УкрСклад...');
+    await downloadOrdersUkrSklad(
+      idOrders,
+      idShop,
+      (max, current) => socket.emit('dwn progress', `Создан ${current} из ${max} заказов`));
+    socket.emit('dwn complete', 'Заказы успешно обновлены');
+  } catch (err) {
+    socket.emit('dwn error', err);
+  }
+}
 
+/**
+ * @typedef {{nameFn: String, body: any}} ErrorPromise
+ */
+/** get SCHETs by orderIds
+ * @name getSchetByOrderIds
+ *
+ * @param {[String]} orderIds
+ * @returns {Promise<[{NUM: Number, IS_RESERV: Number, NU: String}]|ErrorPromise>}
+ */
+function getSchetByOrderIds(orderIds) {
+  return new Promise((resolve, reject) => {
+    const result = [];
+    // search order in UkrSklad
+    const sql = `SELECT NUM, IS_REZERV, NU FROM SCHET WHERE NU IN (${orderIds.map(id => `'PROM-${id}'`).join(',')})`;
+    getData({opt: option, sql}, (err, { data = [] }) => {
+      if (err) return reject({nameFn: 'getSchetByOrderIds', body: err});
+      resolve(data);
+    });
+  });
+}
+
+/** remove schets_ and schets from UkrSklad by NUM
+ * @name removeSchetsUkrSklad
+ * @param {[Number]} nums
+ * @returns {Promise<Boolean|ErrorPromise>}
+ */
+function removeSchetsUkrSklad(nums) {
+  return new Promise((resolve, reject) => {
+    //validation
+    if (!Array.isArray(nums) || !nums.length) {
+      return reject({nameFn: 'removeSchetsUkrSklad', body: 'Schould be array of numbers'});
+    }
+    const notNumber = nums.filter(num => typeof num !== 'number');
+    if (notNumber.length) {
+      return reject({nameFn: 'removeSchetsUkrSklad', body: 'Schould be array of numbers'});
+    }
+    const sql = `DELETE FROM SCHET_ WHERE PID IN (${nums.join()})`;
+    getDataPromise('/sql/insert', option, sql)
+      .then(() => {
+        const sql = `DELETE FROM SCHET WHERE NUM IN (${nums.join()})`;
+        return getDataPromise('/sql/insert', option, sql);
+      })
+      .then(() => {
+        resolve(true);
+      })
+      .catch(err => {
+        reject({nameFn: 'removeSchetsUkrSklad', body: err});
+      });
+  });
+}
+
+/** remove order from db
+ * @name removeOrderDB
+ * @param {String} orderId
+ * @returns {Promise<unknown>}
+ */
+function removeOrderDB(orderId) {
+  return new Promise((res, rej) => {
+    if (typeof orderId !== 'string') {
+      return rej({nameFn: 'removeOrderDB', body: 'Schould be string'});
+    }
+    socket.emit('removeOrder', 'order', orderId, (err, info) => {
+      if (info?.ok) {
+        res(true);
+      } else {
+        rej(err);
+      }
+    })
+  });
+}
+
+/** download orders from UkrSklad
+ * @name downloadOrdersUkrSklad
+ * @param {[String]} orderIds
+ * @param {String} idShop
+ * @param {downloadOrdersUkrSklad~fnProgress} fnProgress
+ * @returns {Promise<unknown>}
+ */
+async function downloadOrdersUkrSklad(orderIds, idShop, fnProgress) {
+  const result = [];
+  //validation
+  if (!Array.isArray(orderIds) || !orderIds.length) {
+    return Promise.reject({nameFn: 'downloadOrdersUkrSklad', body: 'Schould be array of numbers'});
+  }
+  const notString = orderIds.filter(num => typeof num !== 'string');
+  if (notString.length) {
+    return Promise.reject({nameFn: 'downloadOrdersUkrSklad', body: 'Schould be array of numbers'});
+  }
+  for (let i = 0; i < orderIds.length; i++) {
+    const item = await downloadOrder(orderIds[i], idShop);
+    fnProgress(orderIds.length, i + 1);
+    result.push(item);
+  }
+  return result;
+  //send request to server for downloadOrder
+  function downloadOrder(orderId, idShop) {
+    return new Promise((resolve, reject) => {
+      socket.emit('modules', 'downloadOrder', orderId, idShop, (err, info) => {
+        if (err) return reject(err);
+        resolve(info);
+      });
+    });
+  }
+}
+
+/**
+ * @callback downloadOrdersUkrSklad~fnProgress
+ * @param {Number} max
+ * @param {Number} current
+ */
+
+/**
+ * @name deleteOrder
+ * @param id
+ * @returns {Promise<unknown>}
+ */
 function deleteOrder(id) {
   return new Promise((res, rej) => {
     const sql = `SELECT NUM, IS_REZERV FROM SCHET WHERE NU = 'PROM-${id}'`;
-    getData({opt: option, sql: sql}, (err, info) => {
+    getData({ opt: option, sql }, (err, { data }) => {
       if (err) rej(err);
-      if (!info.data.length) {
+      if (!data || !data?.length) {
         rej({status: 'not found', text: `Заказ с номером документа PROM-${id} не найден`});
       } else {
-        console.log(' deleteOrder -> IS_REZERV: ', info.data[0].IS_REZERV);
-        if (info.data[0].IS_REZERV) {
+        if (data[0].IS_REZERV) {
           modalAlert(`Невозможно удалить заказ 'PROM-${id}'. Oн в резерве. Для удаления снимите резерв.`);
           return rej({err: `Невозможно удалить заказ 'PROM-${id}'. Oн в резерве. Для удаления снимите резерв.`, info: 'deleteOrder()'});
         }
-        const PID = info.data[0].NUM;
-        console.log(PID);
+        const PID = data[0].NUM;
         const sql = `DELETE FROM SCHET_ WHERE PID = ${PID}`;
         getDataPromise('/sql/insert', option, sql)
           .then(d => {
