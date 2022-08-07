@@ -220,10 +220,13 @@ router
             })
             .catch(err => console.log(err))
     })
-    // .get('/export', (req, res) => {
-    //     // const rows = xlsx.readFile('public\\price\\export.xlsx');
-    //     // res.json(rows);
-    // })
+    .get('/getPrice', (req, res) => {
+        readXlsxFile('public\\price\\price.xlsx')
+            .then(rows => {
+                res.status(200).json(rows);
+            })
+            .catch(err => res.status(500).json({err: err}))
+    })
 ;
 
 module.exports = router;

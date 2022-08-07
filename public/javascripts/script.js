@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.25.1';
+const version = '2.26.0';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -187,7 +187,7 @@ function start(url) {
       //         .then(r => cb(null, r))
       //         .catch(err => cb(err, null));
       // } else {
-        openInfoWindow(`${msg} (имя файла будет "${filename} ${date.toString().slice(4, 24).replace(/:/g, '-')}" или введите свое имя)`, true)
+        openInfoWindow(`${msg} (имя файла будет "${filename} ${date.toString().slice(4, 24).replace(/:/g, '-')}" или введите свое имя)`, true, autoSaveXlsx)
         .then(res => {
           console.log(data);
           if (res.status) {
@@ -1463,7 +1463,8 @@ function getDataPromise(url, option, sql, blob, data) {
 }
 
 //открываем информационное окно
-function openInfoWindow(info, showInput) {
+function openInfoWindow(info, showInput, autoClose) {
+  if (autoClose) return Promise.resolve({ status: true, value: $('#input-info').val()});
   $('#modal-info').modal('show');
   if (showInput) $('#input-info').removeClass('hidden');
   $('.apxu-info-alert').html(info);

@@ -148,3 +148,12 @@ footer {
 #modal-error {
   z-index: 1060;
 }
+.btn-outline-prom {
+  color: #693b97;
+  border-color: #693b97;
+}
+.btn-outline-prom:hover {
+  color: #fff;
+  background-color: #693b97;
+  border-color: #693b97;
+}
