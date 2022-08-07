@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.26.0';
+const version = '2.26.1';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
