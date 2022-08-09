@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.26.2';
+const version = '2.26.3';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -182,8 +182,8 @@ function start(url) {
       console.log(" xlsx: ", );
       //show the window for choice, save or not
       const date = new Date();
-      const autoSaveXlsx = typeof window['autoSaveXlsx'] !== 'undefined' ? window['autoSaveXlsx'] : false;
-      openInfoWindow(`${msg} (имя файла будет "${filename} ${date.toString().slice(4, 24).replace(/:/g, '-')}" или введите свое имя)`, true, autoSaveXlsx)
+      const autoSave = typeof autoSaveXlsx !== 'undefined' ? autoSaveXlsx : false;
+      openInfoWindow(`${msg} (имя файла будет "${filename} ${date.toString().slice(4, 24).replace(/:/g, '-')}" или введите свое имя)`, true, autoSave)
         .then(res => {
           console.log(data);
           if (res.status) {
