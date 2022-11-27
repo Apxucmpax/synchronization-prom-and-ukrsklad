@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.26.3';
+const version = '2.27.0';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -48,7 +48,7 @@ function testFetch(i, timeout) {
 }
 
 //testFetch(0, 1000);
-start('https://syncprom1.herokuapp.com');
+start('https://sync.apxu.pp.ua');
 function start(url) {
   socket = io(`${url}/api`);
 
