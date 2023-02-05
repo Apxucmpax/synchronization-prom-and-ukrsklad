@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.28.0';
+const version = '2.28.1';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -1754,7 +1754,7 @@ function calib() {
             sql: `SELECT NUM, NAME, ${fields.promId} FROM TOVAR_NAME WHERE (DOPOLN4 = 'DELETED' AND NOT(${fields.promId} IS NULL))`
           }, (err, tovar2) => {
             console.log('Удаленных товаров с Пром ИД', tovar2);
-            if (tovar2?.data) showAlert(`Найдено ${tovar2.data.length} товаров с пром ИД и статусом 'DELETED'. ${t.console + t.warning + t.setting}`, 'danger', 180000);
+            if (Array.isArray(tovar2?.data) && tovar2?.data.length) showAlert(`Найдено ${tovar2.data.length} товаров с пром ИД и статусом 'DELETED'. ${t.console + t.warning + t.setting}`, 'danger', 180000);
           });
           //поиск товаров с невалидными значениями(не числа) в колонке для Prom-ID
           getData({
