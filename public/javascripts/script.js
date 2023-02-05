@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.27.0';
+const version = '2.28.0';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -48,6 +48,7 @@ function testFetch(i, timeout) {
 }
 
 //testFetch(0, 1000);
+//start('http://localhost:3005');
 start('https://sync.apxu.pp.ua');
 function start(url) {
   socket = io(`${url}/api`);
@@ -76,6 +77,7 @@ function start(url) {
           stateSwitch(info);
           //if (online) checkExport();//проверяем был ли запущен экспорт цен
           //setInterval(checkConnect, 60000);
+          calib();
           //проверка на дубликаты
           checkDouble();
         });
@@ -1651,12 +1653,12 @@ function stopWatch() {
 }
 
 //вывод сообщения
-function showAlert(html, type = 'info') {
+function showAlert(html, type = 'info', timeout = 20000) {
   $('.alert').html(html).removeClass('hidden').addClass(`alert-${type}`);
   console.log('alert', html);
   setTimeout(() => {
     $('.alert').addClass('hidden').removeClass(`alert-${type}`);
-  }, 20000);
+  }, timeout);
 }
 
 //сортировка групп
@@ -1723,18 +1725,21 @@ function calib() {
       //данных нет, база пуста
       modalAlert('База пустая');
     }
-    console.log(result);
+    console.log('Список товаров c проблемным символом(\'):', result);
+    const backspace = '’';
+    if (result.length) showAlert(`Найдено ${result.length} товаров c проблемным символом(') рекомендуем его заменить (например на ${backspace} или на любой вам удобный символ). ${t.console + t.warning}`, 'danger', 60000);
     //поиск удаленных позиций
     //SKLAD_ID 1=товар в наличии, -20=производство, -1=нет на балансе, -10=резерв нет на балансе, 0=нет на балансе
     getData({opt: option, sql: 'SELECT TOVAR_ID FROM TOVAR_ZAL WHERE NOT(SKLAD_ID IN (-10, -20))'}, (err, zal) => {
       const zalObj = {};
-      if (zal.data) {
+      if (zal?.data) {
         zal.data.forEach(z => zalObj[z.TOVAR_ID] = z.TOVAR_ID);//tovar[1,2,3,4,5] zal[2,3]
 
         const result2 = tovar.data.filter(t => {
           if (!zalObj[t.NUM]) return t;
         });
-        console.log(result2);
+        console.log('товары не отмеченые как удаленные', result2);
+        if (result2.length) showAlert(`Найдено ${result2.length} товаров не отмеченых как удаленные. ${t.console + t.warning + t.setting}`, 'danger', 180000);
       } else {
         //данных нет, база пуста
         modalAlert('База пустая');
@@ -1747,9 +1752,27 @@ function calib() {
           getData({
             opt: option,
             sql: `SELECT NUM, NAME, ${fields.promId} FROM TOVAR_NAME WHERE (DOPOLN4 = 'DELETED' AND NOT(${fields.promId} IS NULL))`
-          }, (err, tovar) => {
-            console.log('Удаленных товаров с Пром ИД', tovar);
-          })
+          }, (err, tovar2) => {
+            console.log('Удаленных товаров с Пром ИД', tovar2);
+            if (tovar2?.data) showAlert(`Найдено ${tovar2.data.length} товаров с пром ИД и статусом 'DELETED'. ${t.console + t.warning + t.setting}`, 'danger', 180000);
+          });
+          //поиск товаров с невалидными значениями(не числа) в колонке для Prom-ID
+          getData({
+            opt: option,
+            sql: `SELECT NUM, NAME, ${fields.promId} FROM TOVAR_NAME WHERE ((DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL) AND NOT(${fields.promId} IS NULL))`
+          }, (err, tovar3) => {
+            //поиск товаров с нечисленным значением
+            if (tovar3?.data.length) {
+              const result3 = [];
+              tovar3.data.forEach(t => {
+                if (isNaN(Number(t[fields.promId]))) {
+                  result3.push(t);
+                }
+              });
+              console.log(`Товары с невалидными данными в поле для Пром-ИД(${fields.promId})`, result3);
+              if (result3.length) showAlert(`Найдено ${result3.length} товаров с невалидными данными в поле для Пром-ИД(${fields.promId}). ${t.console + t.warning}`, 'danger', 120000);
+            }
+          });
         } else {
           console.log('Поле для сохранения Prom ID отсутствует');
         }
@@ -2020,7 +2043,7 @@ function showModules(modules) {
 
 function checkDouble() {
   const result = [];
-  const sql = `SELECT NUM, DOPOLN5 FROM TOVAR_NAME WHERE DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL AND NOT(DOPOLN5 IS NULL)`;
+  const sql = `SELECT NUM, DOPOLN5 FROM TOVAR_NAME WHERE ((DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL) AND NOT(DOPOLN5 IS NULL))`;
   selectBD(option, sql)
     .then(r => {
       if (!r.data || !r.data.length) {
@@ -2046,7 +2069,7 @@ function checkDouble() {
 //сохранение товара
 function test3() {
   const result = [];
-  const sql = `SELECT NUM, KOD FROM TOVAR_NAME WHERE DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL AND NOT(KOD IS NULL)`;
+  const sql = `SELECT NUM, KOD FROM TOVAR_NAME WHERE ((DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL) AND NOT(KOD IS NULL))`;
   selectBD(option, sql)
     .then(r => {
       console.log(r.data.length);
@@ -2230,3 +2253,9 @@ $('#modal-groups').on('hidden.bs.modal', (e) => {
 $('#modal-combine-orders').on('shown.bs.modal', (e) => {
   $('#modal-combine-orders input[aria-describedby="button-show-orders"]').val(getTwoDate());
 });
+//texts
+const t = {
+  console: 'Список в консоли (Ctrl+Shift+I). Вкладка Console. ',
+  warning: 'Если вы не исправити ошибку, то далее программа будет работать некорректно. ',
+  setting: 'Эту ошибку можно исправить автоматически, в настройках. Нажмите на кнопку с изоброжением шестиренки в правом верхнем углу и в открывшемся окне нажмите кнопку "Авто калибровка"',
+};
