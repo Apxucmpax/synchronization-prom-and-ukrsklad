@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.28.1';
+const version = '2.28.2';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -2044,26 +2044,28 @@ function showModules(modules) {
 function checkDouble() {
   const result = [];
   const sql = `SELECT NUM, DOPOLN5 FROM TOVAR_NAME WHERE ((DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL) AND NOT(DOPOLN5 IS NULL))`;
-  selectBD(option, sql)
-    .then(r => {
-      if (!r.data || !r.data.length) {
-        return modalAlert('ВНИМАНИЕ: Приложение подключено к пустой базе');
-      }
-      console.log('checkDouble', r);
-      const obj = {};
-      r.data.forEach(d => {
-        if (d.DOPOLN5) {
-          if (!obj[d.DOPOLN5]) obj[d.DOPOLN5] = d.NUM;
-          else {
-            result.push(d);
+  setTimeout(() => {
+    selectBD(option, sql)
+      .then(r => {
+        if (!r.data || !r.data.length) {
+          return modalAlert('ВНИМАНИЕ: Приложение подключено к пустой базе');
+        }
+        console.log('checkDouble', r);
+        const obj = {};
+        r.data.forEach(d => {
+          if (d.DOPOLN5) {
+            if (!obj[d.DOPOLN5]) obj[d.DOPOLN5] = d.NUM;
+            else {
+              result.push(d);
+            }
           }
+        })
+        if (result.length) {
+          showAlert('ВНИМАНИЕ. Найдены дублекаты Пром ИД. Рекоменуем устранить неисправность, программа может работать некоректно. Список дубликатов вы можите посмотреть в консоле (Ctrl + Shift + i)');
+          console.log('Дубли', result);
         }
       })
-      if (result.length) {
-        showAlert('ВНИМАНИЕ. Найдены дублекаты Пром ИД. Рекоменуем устранить неисправность, программа может работать некоректно. Список дубликатов вы можите посмотреть в консоле (Ctrl + Shift + i)');
-        console.log('Дубли', result);
-      }
-    })
+  }, 2000);
 }
 
 //сохранение товара
