@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.28.2';
+const version = '2.28.3';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -1705,9 +1705,10 @@ function sortGroup2(groups){
 }
 
 //поиск в базе неподдерживаемых символов
-function calib() {
+async function calib() {
   //проверяем базу на неподдерживаемые символы
   //берем все товары SELECT NUM, NAME FROM TOVAR_NAME
+  await test3();
   const result = [];
   const data = {
     opt: option,
@@ -2072,7 +2073,7 @@ function checkDouble() {
 function test3() {
   const result = [];
   const sql = `SELECT NUM, KOD FROM TOVAR_NAME WHERE ((DOPOLN4 != 'DELETED' OR DOPOLN4 IS NULL) AND NOT(KOD IS NULL))`;
-  selectBD(option, sql)
+  return selectBD(option, sql)
     .then(r => {
       console.log(r.data.length);
       const obj = {};
@@ -2084,7 +2085,10 @@ function test3() {
           }
         }
       })
-      console.log(result);
+      if (result.length) {
+        showAlert(`Найдены дублекаты кодов товаров(KOD) ${result.length}шт. ${t.console}`, 'warning', 60000);
+        console.log('Дубли:', result);
+      }
     })
 }
 
