@@ -171,6 +171,7 @@ router
                         error = checkHeader(r);
                     }
                 })
+                if (priceCheck(rowObj)) return res.json({err: 'Ошибка в ценах'});
                 if (rowObj.length && !error) {
                     let i = 0;
                     start();
@@ -499,6 +500,14 @@ function insertBlob(opt, data) {
             rej('error in write blob stream ',err);
         })
     })
+}
+
+//price check cena_1 roz cena_2 opt
+function priceCheck(data) {
+    return data.find(({CENA_R, CENA_O, CENA_1, CENA_2}) => {
+        if (CENA_R && CENA_O && (CENA_R < CENA_O)) return true;
+        if (CENA_1 && CENA_2 && (CENA_1 < CENA_2)) return true;
+    });
 }
 
 // var fb  = require("./firebird");
