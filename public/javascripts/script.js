@@ -556,7 +556,7 @@ function hideGroups(groups, configGroups) {
 function downloadTTN(e) {
   $(e).attr('disabled', true);
   const date = $('#modal-ttn input.date').val();
-  const socket2 = io('https://apxu-prom.apxu.pp.ua/chat');
+  const socket2 = io('https://smsprom.apxu.pp.ua/chat');
   $('#modal-ttn').modal('hide');
   socket2.emit('find ttn', date.split(' '), (err, docs) => {
     socket2.disconnect();
