@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = '2.28.3';
+const version = '2.28.6';
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -2029,7 +2029,7 @@ function saveChanges(e) {
     .then(r => r.json())
     .then(res => {
       if (res.err) {
-        showAlert(res.err);
+        showAlert(res.err, 'danger', 180000);
       } else {
         showAlert(res.data);
       }

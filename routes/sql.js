@@ -171,7 +171,7 @@ router
                         error = checkHeader(r);
                     }
                 })
-                if (priceCheck(rowObj)) return res.json({err: 'Ошибка в ценах'});
+                if (priceCheck(rowObj)) return res.json({err: 'Ошибка в ценах. Проверьте файл. У вас розничные цены меньше оптовых(Колонки CENA_R, CENA_O и CENA_1, CENA_2)'})
                 if (rowObj.length && !error) {
                     let i = 0;
                     start();
