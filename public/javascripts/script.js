@@ -235,8 +235,8 @@ function start(url) {
         });
     })
     .on("reloadOrders", reloadOrders)
-    .on("createInvoice", (orders) => {
-      socket.emit("modules", "createInvoiceByOrderId", orders, null, (err, info) => {
+    .on("createInvoice", (orders, idShop) => {
+      socket.emit("modules", "createInvoiceByOrderId", orders, idShop, (err, info) => {
         if (err) return socket.emit("dwn error", err);
         socket.emit("dwn complete", "Общая накладная создана");
       });
