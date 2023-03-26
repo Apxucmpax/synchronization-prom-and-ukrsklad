@@ -127,6 +127,8 @@ block content
                   path(fill-rule="evenodd", d="M8 5a.5.5 0 0 1 .5.5V7H14a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0v-1A.5.5 0 0 1 2 7h5.5V5.5A.5.5 0 0 1 8 5z")
           div.btn-group.mr-2.mb-2.combineOrders.hidden(role="group")
             button.btn.btn-outline-dark(onclick="showModalCombineOrders()", title="Сборочная накладная") Сборочная накладная
+          div.btn-group.mr-2.mb-2.multilang.hidden(role="group")
+            button.btn.btn-outline-dark(onclick="downloadLang()", title="Загрузить имена товаров на другом языке") Загрузить имена товаров на другом языке
         div.modal-footer
           button.btn.btn-secondary(type="button", data-dismiss="modal", title="Закрыть") Закрыть
   div#modal-import.modal(tabindex="-1", role="dialog")
