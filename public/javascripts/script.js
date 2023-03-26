@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = "2.29.0";
+const version = "2.29.1";
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -51,8 +51,8 @@ function testFetch(i, timeout) {
 }
 
 //testFetch(0, 1000);
-start("http://localhost:3005");
-//start("https://sync.apxu.pp.ua");
+//start("http://localhost:3005");
+start("https://sync.apxu.pp.ua");
 function start(url) {
   socket = io(`${url}/api`);
 
