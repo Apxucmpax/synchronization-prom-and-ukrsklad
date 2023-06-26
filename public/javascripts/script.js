@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = "2.29.1";
+const version = "2.29.2";
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -2139,9 +2139,27 @@ function test3() {
 }
 
 //очистить TOVAR_NAME от записи 'DELETED' в DOPOLN4
-function test4() {
-  const sql = `UPDATE TOVAR_NAME SET DOPOLN4 = NULL WHERE DOPOLN4 = 'DELETED' `;
-  insertBD(option, sql).then((r) => console.log(r));
+async function test4() {
+  // get all row TOVAR_ZAL
+  const sql = `SELECT NUM, TOVAR_ID, SKLAD_ID FROM TOVAR_ZAL`;
+  const r = await selectBD(option, sql);
+  // filter row with SKLAD_ID = 1 and TOVAR_ID have duplicate
+  const arr = r.data.filter((d) => d.SKLAD_ID === 1);
+  const obj = {};
+  const result = [];
+  arr.forEach((a) => {
+    if (!obj[a.TOVAR_ID]) obj[a.TOVAR_ID] = a.NUM;
+    else {
+      // delete row with duplicate
+      result.push(a);
+    }
+  });
+  for (const one of result) {
+    const sql = `DELETE FROM TOVAR_ZAL WHERE NUM = ${one.NUM}`;
+    const res = await insertBD(option, sql);
+    console.log("delete", res);
+  }
+  console.log("ZAL", result);
 }
 
 //установка свитча
