@@ -48,6 +48,8 @@ block content
   div.container.mt-2(style="text-align: center;")
     button.btn.btn-outline-dark(onclick="removePhotoWithoutId(this)", title="Удалить фото без ID") Удалить фото без ID
   div.container.mt-2(style="text-align: center;")
+    button.btn.btn-outline-dark.deletePromID.hidden(onclick="deletePromID()", title="Удалить неиспользуемые Prom ID") Удалить неиспользуемые Prom ID
+  div.container.mt-2(style="text-align: center;")
     button.btn.btn-outline-dark(onclick="openTTNWindow()", title="Загрузка ТТН") Загрузка ТТН
   div.container.mt-2(style="text-align: center;")
     div.btn-group
@@ -129,6 +131,8 @@ block content
             button.btn.btn-outline-dark(onclick="showModalCombineOrders()", title="Сборочная накладная") Сборочная накладная
           div.btn-group.mr-2.mb-2.multilang.hidden(role="group")
             button.btn.btn-outline-dark(onclick="downloadLang()", title="Загрузить имена товаров на другом языке") Загрузить имена товаров на другом языке
+          div.btn-group.mr-2.mb-2.deletePromID.hidden(role="group")
+            button.btn.btn-outline-dark(onclick="deletePromID('ss')", title="Удалить неиспользуемые Prom ID") Удалить неиспользуемые Prom ID
         div.modal-footer
           button.btn.btn-secondary(type="button", data-dismiss="modal", title="Закрыть") Закрыть
   div#modal-import.modal(tabindex="-1", role="dialog")

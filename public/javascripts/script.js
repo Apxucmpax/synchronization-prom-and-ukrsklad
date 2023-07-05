@@ -7,7 +7,7 @@ let online = false;
 let sentStatus = false;
 // flag open modal groups
 let isOpenModalGroups = false;
-const version = "2.29.2";
+const version = "2.30.0";
 /** instanceService is now Service
  * @member {Service} instanceService
  */
@@ -2262,6 +2262,14 @@ function downloadLang() {
   socket.emit("modules", "multilang", null, null, (err, res) => {
     if (err) return showAlert(err);
     console.log(" downloadLang: ", res);
+  });
+}
+
+//delete PromID not exist
+function deletePromID(switcher) {
+  //deletePromIDNotExist;
+  deletePromIDNotExist(switcher).then((res) => {
+    console.log("deletePromID", res);
   });
 }
 
